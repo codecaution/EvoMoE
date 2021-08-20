@@ -51,11 +51,11 @@ total_gpu=$GPU_PER_NODE_COUNT
 
 if [[ -z "${OMPI_COMM_WORLD_SIZE}" ]]
 then
-  ddp_options=""
+  ddp_options="--distributed-world-size $GPU_PER_NODE_COUNT --distributed-rank 0 --distributed-init-method tcp://${MASTER_ADDR}:${MASTER_PORT}"
 else
   if (( $OMPI_COMM_WORLD_SIZE == 1))
   then
-	ddp_options=""
+	ddp_options="--distributed-world-size $GPU_PER_NODE_COUNT --distributed-rank 0 --distributed-init-method tcp://${MASTER_ADDR}:${MASTER_PORT}"
   else
     local_rank=$(($GPU_PER_NODE_COUNT*$OMPI_COMM_WORLD_RANK))
     total_gpu=$(($OMPI_COMM_WORLD_SIZE*$GPU_PER_NODE_COUNT))
