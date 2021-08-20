@@ -261,7 +261,12 @@ class TransformerLanguageModelConfig(FairseqDataclass):
         metadata={"help": 'Use bitsandbytes StableEmbeddingLayer which saves embedding state in fp32',
                   'argparse_alias': "--stable-emb"}
     )
-
+    moe_dense: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Use Weighted MoE Layer(Dense Connection)"
+        }
+    )
     # options from other parts of the config
 
     # config for "BASE Layers: Simplifying Training of Large, Sparse Models"

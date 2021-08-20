@@ -6,3 +6,4 @@
 from .moe_layer import MOELayer
 from .top2gate import Top2Gate
 from .top1gate import Top1Gate
+from .weighted_moe import WeightedMOELayer
