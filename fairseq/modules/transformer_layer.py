@@ -372,7 +372,7 @@ class TransformerDecoderLayer(nn.Module):
                 start_seed = torch.randint(1000000, (1,)).item()
                 for i in range(args.moe_expert_count):
                     with utils.set_torch_seed(start_seed + i):
-                        expert_list.append(FeedForwardNetwork(args, self.embed_dim, self.dropout_module))
+                        expert_list.append(FeedForwardNetwork(args, self.embed_dim, ffn_dim, self.dropout_module))
                 experts = nn.ModuleList(expert_list)
                 self.moe_layer = WeightedMOELayer(
                     experts,
