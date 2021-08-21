@@ -3,9 +3,6 @@
 # This source code is licensed under the BSD license found in the
 # LICENSE file in the root directory of this source tree.
 
-# NOTE: This is a mirror of the code in
-# https://github.com/facebookresearch/fairscale/tree/master/fairscale/nn/moe
-
 from typing import TYPE_CHECKING, Any, Optional, Tuple, Union, cast
 import os
 import torch
@@ -18,8 +15,6 @@ if TYPE_CHECKING:
 else:
     Base = Module
 
-layer_id = 0
-
 class WeightedMOELayer(Base):
     """MOELayer module which distributed the tokens to all-experts(top-N). 
        Then do weighted sum to combine the output of each experts.
@@ -27,7 +22,6 @@ class WeightedMOELayer(Base):
         gate = TopNGate(model_dim, num_experts)
         moe = MOELayer(gate, expert)
         output = moe(input)
-        l_aux = moe.l_aux
     Args:
         gate (torch.nn.Module):
             gate network
@@ -47,15 +41,10 @@ class WeightedMOELayer(Base):
         self.args = args
         self.in_generation = False
         self.wg = torch.nn.Linear(self.model_dim, self.expert_number, bias=False)
-        
-
-        global layer_id
-        self.layer_id = layer_id
-        layer_id += 1
 
     def forward(self, *input: Tensor, **kwargs: Any) -> Tensor:
         assert len(input) == 1, "only single input Tensor supported"
-        # shape of input: [Seq_len, tokens_number, d_model]
+        # shape of input: [Batch_size, Seq_len, d_model]
         input = input[0]
         d_model = input.shape[2]
         
@@ -65,6 +54,7 @@ class WeightedMOELayer(Base):
 
         # reshapeed_input: [tokens_number, d_model]
         logits = self.wg(reshaped_input)
+        
         # gates_weight: [tokens_number, expert_number]
         gates_weight = F.softmax(logits, dim=1)
 
@@ -75,10 +65,6 @@ class WeightedMOELayer(Base):
         expert_outputs = torch.cat(expert_outputs, 1).reshape(reshaped_input_shape[0], self.expert_number, reshaped_input_shape[1])
         gates_weight = gates_weight.reshape(reshaped_input_shape[0], 1, self.expert_number)
         combined_output = torch.bmm(gates_weight, expert_outputs)
-        # combined_output = torch.zeros_like(expert_outputs[0])        
-        # for row_id in range(gates_weight.shape[0]):
-        #     for expert_id in range(gates_weight.shape[1]):
-        #         combined_output[row_id] += gates_weight[row_id][expert_id] * expert_outputs[expert_id][row_id]
 
         combined_output = combined_output.reshape(input.shape)
         
