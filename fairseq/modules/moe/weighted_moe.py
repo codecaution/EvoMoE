@@ -56,7 +56,10 @@ class WeightedMOELayer(Base):
         logits = self.wg(reshaped_input)
         
         # gates_weight: [tokens_number, expert_number]
-        gates_weight = F.softmax(logits, dim=1)
+        if self.args.use_gumbel_softmax:
+            gates_weight = F.softmax(logits/self.args.gumbel_temperature, dim=1)
+        else:
+            gates_weight = F.softmax(logits, dim=1)
 
         expert_outputs = []
         for expert in self.experts:

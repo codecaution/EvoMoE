@@ -262,7 +262,11 @@ class TransformerModel(FairseqEncoderDecoderModel):
         parser.add_argument('--alternate-ffn-embed-dim', type=int, default=0,
                             help="FFN embed dim of alternate pseudo-MoE blocks")
         parser.add_argument('--moe-dense', default=False, action='store_true',
-                            help="Use Weighted MoE Layer(Dense Connection)")        
+                            help="Use Weighted MoE Layer(Dense Connection)")
+        parser.add_argument('--use-gumbel-softmax', default=False, action='store_true',
+                            help="Use Gumbel-Softmax for gate distribution")
+        parser.add_argument('--gumbel-temperature', type=float, default=1.0,
+                            help="Non-negative scalar temperature for Gumbel-Softmax")
         # fmt: on
 
 
