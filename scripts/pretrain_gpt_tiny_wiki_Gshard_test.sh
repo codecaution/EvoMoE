@@ -1,4 +1,5 @@
 #! /bin/bash
+pip install fairscale==0.4.0
 export DATA_NAME=wikitext-103
 export TOKENS_PER_SAMPLE=1024
 export BATCH_SIZE=4
