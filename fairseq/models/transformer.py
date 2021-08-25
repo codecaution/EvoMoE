@@ -266,10 +266,10 @@ class TransformerModel(FairseqEncoderDecoderModel):
                             help="Use topk gate")
         parser.add_argument('--topk', type=int, default=-1,
                             help="k for topk gate")
-        parser.add_argument('--use-gumbel-softmax', default=False, action='store_true',
-                            help="Use Gumbel-Softmax for gate distribution")
-        parser.add_argument('--gumbel-temperature', type=float, default=1.0,
-                            help="Non-negative scalar temperature for Gumbel-Softmax")
+        # parser.add_argument('--use-gumbel-softmax', default=False, action='store_true',
+        #                     help="Use Gumbel-Softmax for gate distribution")
+        # parser.add_argument('--gumbel-temperature', type=float, default=1.0,
+        #                     help="Non-negative scalar temperature for Gumbel-Softmax")
         # fmt: on
 
 

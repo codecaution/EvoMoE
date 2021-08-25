@@ -272,17 +272,17 @@ class TransformerLanguageModelConfig(FairseqDataclass):
             "help": "k for topk gate"
         }
     )       
-    use_gumbel_softmax: Optional[bool] = field(
-        default=False,
-        metadata={
-            "help": "Use Gumbel-Softmax for gate distribution"}
-    )
-    gumbel_temperature: Optional[float] = field(
-        default=1.0,
-        metadata={
-            "help": "Non-negative scalar temperature for Gumbel-Softmax"
-        }
-    )       
+    # use_gumbel_softmax: Optional[bool] = field(
+    #     default=False,
+    #     metadata={
+    #         "help": "Use Gumbel-Softmax for gate distribution"}
+    # )
+    # gumbel_temperature: Optional[float] = field(
+    #     default=1.0,
+    #     metadata={
+    #         "help": "Non-negative scalar temperature for Gumbel-Softmax"
+    #     }
+    # )       
     # options from other parts of the config
 
     # config for "BASE Layers: Simplifying Training of Large, Sparse Models"

@@ -538,6 +538,11 @@ class OptimizationConfig(FairseqDataclass):
             "help": "specify global optimizer for syncing models on different GPUs/shards"
         },
     )
+    use_gumbel_softmax: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Use Gumbel-Softmax for gate distribution"}
+    )
 
 
 @dataclass

@@ -34,6 +34,7 @@ from fairseq.file_io import PathManager
 from fairseq.logging import meters, metrics, progress_bar
 from fairseq.model_parallel.megatron_trainer import MegatronTrainer
 from fairseq.trainer import Trainer
+from fairseq import parameter
 from omegaconf import DictConfig, OmegaConf
 
 
@@ -306,6 +307,8 @@ def train(
         if log_output is not None:  # not OOM, overflow, ...
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
+            if cfg.optimization.use_gumbel_softmax:
+                parameter.gumbel_temperature = max(5.0 * (10000 - num_updates)/10000, 0.1)
             if num_updates % cfg.common.log_interval == 0:
                 stats = get_training_stats(metrics.get_smoothed_values("train_inner"))
                 progress.log(stats, tag="train_inner", step=num_updates)
