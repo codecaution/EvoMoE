@@ -68,6 +68,7 @@ def top2gating(
         orig_dtype = logits.dtype
         logits = logits.float()
     gates = F.softmax(logits, dim=1)
+    
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
     # gates has shape of SE
     num_tokens = gates.shape[0]
@@ -91,11 +92,10 @@ def top2gating(
     logits_except1 = logits_w_noise.masked_fill(mask1.bool(), float("-inf"))
     indices2_s = torch.argmax(logits_except1, dim=1, keepdim=True)
     mask2 = one_hot(indices2_s, num_experts)
-    gates1_s = (gates * mask1).sum(dim=1)
-    gates2_s = (gates * mask2).sum(dim=1)
-
     if normalize_gate_prob_before_dropping:
         # Normalize gate probabilities
+        gates1_s = (gates * mask1).sum(dim=1)
+        gates2_s = (gates * mask2).sum(dim=1)
         denom_s = gates1_s + gates2_s
         # Avoid divide-by-zero
         denom_s = torch.clamp(denom_s, min=torch.finfo(denom_s.dtype).eps)
@@ -111,7 +111,6 @@ def top2gating(
         nonpadding = ~ input_mask
         mask1 = mask1 * nonpadding.unsqueeze(-1).to(mask1.dtype)
         mask2 = mask2 * nonpadding.unsqueeze(-1).to(mask1.dtype)
-
     if batch_prioritized_routing:
         # if batch_prioritized_routing:
         importance_scores = -1 * gates.max(dim=1)[0]
@@ -167,7 +166,7 @@ def top2gating(
     # Store the capacity location for each token
     locations1_s = torch.sum(locations1 * mask1, dim=1)
     locations2_s = torch.sum(locations2 * mask2, dim=1)
-
+    
     if not normalize_gate_prob_before_dropping:
         # Normalize gate probabilities
         gates1_s = (gates * mask1).sum(dim=1)
@@ -177,7 +176,6 @@ def top2gating(
         denom_s = torch.clamp(denom_s, min=torch.finfo(denom_s.dtype).eps)
         gates1_s /= denom_s
         gates2_s /= denom_s
-
     # Calculate combine_weights and dispatch_mask
     gates1 = gates1_s.unsqueeze(-1) * mask1.to(gates1_s.dtype)  # einsum("s,se->se")
     gates2 = gates2_s.unsqueeze(-1) * mask2.to(gates2_s.dtype)  # einsum("s,se->se")
@@ -193,6 +191,7 @@ def top2gating(
     )
     combine_weights = combine1_sec + combine2_sec
     dispatch_mask = combine_weights.bool()
+
     if use_fp32:
         return l_aux, combine_weights.to(orig_dtype), dispatch_mask, metadata
     else:

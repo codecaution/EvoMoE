@@ -94,7 +94,6 @@ class MOELayer(Base):
             assert input_padding_mask.shape[0] == input.shape[0]
             assert input_padding_mask.shape[1] == input.shape[1]
         # assert input.shape[0] % len(self.experts) == 0, "num tokens must be order of number of local experts"
-
         # Implement Algorithm 2 from GShard paper.
         d_model = input.shape[2]
         # Pad to expected batch size
@@ -152,16 +151,14 @@ class MOELayer(Base):
             else:
                 padded_input_padding_mask[:reshaped_input_shape[0]] = False
             reshaped_input_padding_mask = padded_input_padding_mask
-
+        # combine_weights, dispatch_mask: (tokens, num_experts, capacity)
         l_aux, combine_weights, dispatch_mask, self.metadata = self.gate(reshaped_input, reshaped_input_padding_mask)
-
         dispatch_mask = dispatch_mask.to(input.dtype).permute(1, 2, 0)  # S,E,C -> E,C,S
         E, C, S = dispatch_mask.size()
         M = reshaped_input.size(1)
         assert reshaped_input.size() == (S, M)
         # einsum("sec,sm->ecm")
         dispatched_input = torch.mm(dispatch_mask.view(E*C, S), reshaped_input)  # -> (E*C),M
-
         if self.all2all_size > 1:
             dispatched_input = self.all_to_all_wrapper(dispatched_input)
 
@@ -178,7 +175,6 @@ class MOELayer(Base):
 
         # Re-shape back: gecm -> ecm
         expert_output = expert_output.reshape(self.all2all_size * self.num_local_experts, -1, d_model)
-
         # einsum("sec,ecm->sm")
         combined_output = combine_weights.view(S, E*C).mm(expert_output.view(E*C, M))
 

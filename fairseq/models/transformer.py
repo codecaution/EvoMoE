@@ -40,6 +40,7 @@ DEFAULT_MAX_TARGET_POSITIONS = 1024
 
 DEFAULT_MIN_PARAMS_TO_WRAP = int(1e8)
 
+# Read here
 def fsdp_wrap_expert(args, layer, min_num_params=0):
     # Wrap MoE layer with FSDP using a process group with all replicated ranks
     process_group = layer.moe_layer.expert_group
@@ -261,8 +262,10 @@ class TransformerModel(FairseqEncoderDecoderModel):
         # args for pseudo-MoE layers
         parser.add_argument('--alternate-ffn-embed-dim', type=int, default=0,
                             help="FFN embed dim of alternate pseudo-MoE blocks")
-        parser.add_argument('--moe-dense', default=False, action='store_true',
-                            help="Use Weighted MoE Layer(Dense Connection)")
+        parser.add_argument('--moe-topk-expert', default=False, action='store_true',
+                            help="Use topk gate")
+        parser.add_argument('--topk', type=int, default=-1,
+                            help="k for topk gate")
         parser.add_argument('--use-gumbel-softmax', default=False, action='store_true',
                             help="Use Gumbel-Softmax for gate distribution")
         parser.add_argument('--gumbel-temperature', type=float, default=1.0,

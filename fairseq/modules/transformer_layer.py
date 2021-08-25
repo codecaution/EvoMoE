@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from fairseq import distributed_utils as dist_utils, utils
 from fairseq.modules import gelu, LayerNorm, MultiheadAttention
 from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.moe import Top1Gate, Top2Gate, MOELayer, WeightedMOELayer
+from fairseq.modules.moe import Top1Gate, Top2Gate, TopKGate, MOELayer
 from fairseq.modules.quant_noise import quant_noise
 from fairseq.modules.fused_bias_gelu import fused_bias_gelu, has_fused_bias_gelu
 from torch import Tensor
@@ -169,6 +169,15 @@ class TransformerEncoderLayer(nn.Module):
                     use_fp32=args.moe_gating_use_fp32,
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
                 )
+            elif args.moe_topk_expert:
+                gate = TopKGate(
+                    self.embed_dim,
+                    num_experts=args.moe_expert_count,
+                    topk=args.topk,
+                    use_fp32=args.moe_gating_use_fp32,
+                    moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
+                    args=args,
+                )  
             else:
                 gate = Top2Gate(
                     self.embed_dim,
@@ -367,19 +376,7 @@ class TransformerDecoderLayer(nn.Module):
                 self.quant_noise,
                 self.quant_noise_block_size,
             )
-        elif args.moe_dense == True:
-                expert_list = []
-                start_seed = torch.randint(1000000, (1,)).item()
-                for i in range(args.moe_expert_count):
-                    with utils.set_torch_seed(start_seed + i):
-                        expert_list.append(FeedForwardNetwork(args, self.embed_dim, ffn_dim, self.dropout_module))
-                experts = nn.ModuleList(expert_list)
-                self.moe_layer = WeightedMOELayer(
-                    experts,
-                    args
-                )
         else:
-
             if args.moe_top1_expert:
                 gate = Top1Gate(
                     self.embed_dim,
@@ -387,6 +384,15 @@ class TransformerDecoderLayer(nn.Module):
                     use_fp32=args.moe_gating_use_fp32,
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
                 )
+            elif args.moe_topk_expert:
+                gate = TopKGate(
+                    self.embed_dim,
+                    num_experts=args.moe_expert_count,
+                    topk=args.topk,
+                    use_fp32=args.moe_gating_use_fp32,
+                    moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
+                    args=args,
+                )                
             else:
                 gate = Top2Gate(
                     self.embed_dim,
@@ -570,11 +576,6 @@ class TransformerDecoderLayer(nn.Module):
                 dropout_module=self.dropout_module,
             )
             l_aux = None
-        elif self.args.moe_dense == True:
-            # x - seq_len, batch_size, model_dim
-            x = x.transpose(0, 1) # batch_size, seq_len, model_dim
-            x, l_aux = self.moe_layer(x)
-            x = x.transpose(0, 1) # seq_len, batch_size, model_dim
         else:
             # x - seq_len, batch_size, model_dim
             x = x.transpose(0, 1) # batch_size, seq_len, model_dim

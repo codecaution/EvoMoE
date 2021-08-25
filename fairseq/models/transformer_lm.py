@@ -261,11 +261,17 @@ class TransformerLanguageModelConfig(FairseqDataclass):
         metadata={"help": 'Use bitsandbytes StableEmbeddingLayer which saves embedding state in fp32',
                   'argparse_alias': "--stable-emb"}
     )
-    moe_dense: Optional[bool] = field(
+    moe_topk_expert: Optional[bool] = field(
         default=False,
         metadata={
-            "help": "Use Weighted MoE Layer(Dense Connection)"}
+            "help": "Use topk gate"}
     )
+    topk: Optional[int] = field(
+        default=-1,
+        metadata={
+            "help": "k for topk gate"
+        }
+    )       
     use_gumbel_softmax: Optional[bool] = field(
         default=False,
         metadata={
