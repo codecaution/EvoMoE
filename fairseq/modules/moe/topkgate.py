@@ -65,7 +65,7 @@ def topkgating(
     # for i in range(num_tokens):
     #     for j in range(num_experts):
     #         combine_sec[i][j][i] = gates[i][j]
-    combine_sec = torch.diag_embed(gates.permute(1,0)).permute(1, 0, 2)
+    combine_sec = torch.diag_embed(gates.permute(1,0)).permute(1, 0, 2).contiguous()
     dispatch_mask = combine_sec.bool()
     if use_fp32:
         return l_aux, combine_sec.to(orig_dtype), dispatch_mask, metadata
