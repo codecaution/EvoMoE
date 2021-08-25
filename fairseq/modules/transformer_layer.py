@@ -176,7 +176,6 @@ class TransformerEncoderLayer(nn.Module):
                     topk=args.topk,
                     use_fp32=args.moe_gating_use_fp32,
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
-                    args=args,
                 )  
             else:
                 gate = Top2Gate(
@@ -391,7 +390,6 @@ class TransformerDecoderLayer(nn.Module):
                     topk=args.topk,
                     use_fp32=args.moe_gating_use_fp32,
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
-                    args=args,
                 )                
             else:
                 gate = Top2Gate(
