@@ -9,8 +9,8 @@ import os
 
 from fairseq import registry
 from fairseq.optim.heat_scheduler.fairseq_heat_scheduler import (  # noqa
-    FairseqheatScheduler,
-    LegacyFairseqheatScheduler,
+    FairseqHeatScheduler,
+    LegacyFairseqHeatScheduler,
 )
 from omegaconf import DictConfig
 
@@ -25,8 +25,8 @@ from omegaconf import DictConfig
 )
 
 
-def build_heat_scheduler(cfg: DictConfig, optimizer):
-    return build_heat_scheduler_(cfg, optimizer)
+def build_heat_scheduler(cfg: DictConfig):
+    return build_heat_scheduler_(cfg)
 
 
 # automatically import any Python files in the optim/heat_scheduler/ directory

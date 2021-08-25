@@ -1,0 +1,1 @@
+gumbel_temperature = -1.0

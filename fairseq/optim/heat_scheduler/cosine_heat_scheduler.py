@@ -11,7 +11,7 @@ from typing import List
 from omegaconf import II
 
 from fairseq.dataclass import FairseqDataclass
-from fairseq.optim.heat_scheduler import FairseqheatScheduler, register_heat_scheduler
+from fairseq.optim.heat_scheduler import FairseqHeatScheduler, register_heat_scheduler
 
 
 @dataclass
@@ -45,7 +45,7 @@ class CosineheatScheduleConfig(FairseqDataclass):
 
 
 @register_heat_scheduler("cosine", dataclass=CosineheatScheduleConfig)
-class CosineheatSchedule(FairseqheatScheduler):
+class CosineheatSchedule(FairseqHeatScheduler):
     """Assign heat based on a cyclical schedule that follows the cosine function.
 
     See https://arxiv.org/pdf/1608.03983.pdf for details.

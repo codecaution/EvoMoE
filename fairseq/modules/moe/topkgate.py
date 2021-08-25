@@ -16,7 +16,7 @@ import math
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-
+from fairseq import parameter
 from .top2gate import entropy
 
 
@@ -32,7 +32,6 @@ def topkgating(
     logits: torch.Tensor,
     input_mask: Optional[torch.Tensor] = None,
     topk=1,
-    args=None,
     use_fp32=False,
     capacity_factor=1.0,
     eval_mode=False,
@@ -48,8 +47,8 @@ def topkgating(
         orig_dtype = logits.dtype
         logits = logits.float()
     
-    if args.use_gumbel_softmax:
-        gates = F.gumbel_softmax(logits, tau=args.gumbel_temperature)
+    if parameter.gumbel_temperature > 0:
+        gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature)
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
      
@@ -98,7 +97,6 @@ class TopKGate(torch.nn.Module):
         input_noise_type=None,
         capacity_factor=1.0,
         moe_eval_capacity_token_fraction=EVAL_CAPACITY_TOKEN_FRACTION,
-        args: Optional[Any] = None,
     ) -> None:
         # TODO: merge this to top2gate.py
         #
@@ -113,7 +111,6 @@ class TopKGate(torch.nn.Module):
         self.input_noise_type = input_noise_type
         self.capacity_factor = capacity_factor
         self.moe_eval_capacity_token_fraction = moe_eval_capacity_token_fraction
-        self.args = args
 
     def forward(self, input: torch.Tensor, mask: Optional[torch.Tensor] = None,) -> Tuple[Tensor, Tensor, Tensor, Dict]:  # type: ignore
         logits = self.wg(input)
@@ -121,7 +118,6 @@ class TopKGate(torch.nn.Module):
             logits,
             mask,
             self.topk,
-            self.args, 
             use_fp32=self.use_fp32,
             capacity_factor=self.capacity_factor,
             eval_mode=not self.training,

@@ -8,7 +8,7 @@ from typing import Optional, List
 from omegaconf import II
 
 from fairseq.dataclass import FairseqDataclass
-from fairseq.optim.heat_scheduler import FairseqheatScheduler, register_heat_scheduler
+from fairseq.optim.heat_scheduler import FairseqHeatScheduler, register_heat_scheduler
 
 
 @dataclass
@@ -29,7 +29,7 @@ class FixedheatScheduleConfig(FairseqDataclass):
 
 
 @register_heat_scheduler("fixed", dataclass=FixedheatScheduleConfig)
-class FixedheatSchedule(FairseqheatScheduler):
+class FixedheatSchedule(FairseqHeatScheduler):
     """Decay the heat on a fixed schedule."""
 
     def __init__(self, cfg: FixedheatScheduleConfig, optimizer):
