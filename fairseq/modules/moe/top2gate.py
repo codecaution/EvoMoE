@@ -92,10 +92,10 @@ def top2gating(
     logits_except1 = logits_w_noise.masked_fill(mask1.bool(), float("-inf"))
     indices2_s = torch.argmax(logits_except1, dim=1, keepdim=True)
     mask2 = one_hot(indices2_s, num_experts)
+    gates1_s = (gates * mask1).sum(dim=1)
+    gates2_s = (gates * mask2).sum(dim=1)
     if normalize_gate_prob_before_dropping:
         # Normalize gate probabilities
-        gates1_s = (gates * mask1).sum(dim=1)
-        gates2_s = (gates * mask2).sum(dim=1)
         denom_s = gates1_s + gates2_s
         # Avoid divide-by-zero
         denom_s = torch.clamp(denom_s, min=torch.finfo(denom_s.dtype).eps)
