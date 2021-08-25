@@ -61,12 +61,12 @@ def topkgating(
     # Compute l_aux
     l_aux = None
     # S, E, C
-    combine_sec = torch.zeros((num_tokens, num_experts, capacity), dtype=torch.float32, device=gates.device)
-    for i in range(num_tokens):
-        for j in range(num_experts):
-            combine_sec[i][j][i] = gates[i][j]
+    # combine_sec = torch.zeros((num_tokens, num_experts, capacity), dtype=torch.float32, device=gates.device)
+    # for i in range(num_tokens):
+    #     for j in range(num_experts):
+    #         combine_sec[i][j][i] = gates[i][j]
+    combine_sec = torch.diag_embed(gates.permute(1,0)).permute(1, 0, 2)
     dispatch_mask = combine_sec.bool()
-    
     if use_fp32:
         return l_aux, combine_sec.to(orig_dtype), dispatch_mask, metadata
     else:
