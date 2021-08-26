@@ -119,6 +119,7 @@ def save_checkpoint(
             if cfg.symlink_best_and_last_checkpoints:
                 PathManager.symlink(src, dest)
             elif cfg.write_checkpoints_asynchronously:
+                PathManager.symlink(src, dest)
                 pass  # TODO[ioPath]: Need to implement a delayed asynchronous file copying/moving feature.
             else:
                 assert PathManager.copy(src, dest, overwrite=True), f"Failed to copy {src} to {dest}"
