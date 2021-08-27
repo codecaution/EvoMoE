@@ -49,6 +49,24 @@ class TokenBlockDataset(FairseqDataset):
     ):
 
         super().__init__()
+        # ------------------------------------------------------------------------------------------
+        try:
+            import fairseq.data.token_block_utils_fast  # noqa
+        except ImportError:
+            try:
+                import cython  # noqa
+                import os
+                from setuptools import sandbox
+                sandbox.run_setup(
+                    os.path.join("/home/v-xiaonannie/FairSeq-MoE/", "setup.py"),
+                    ["build_ext", "--inplace"],
+                )
+            except ImportError:
+                print(
+                    "Unable to build Cython components. Please make sure Cython is "
+                    "installed if the torch.hub model you are loading depends on it."
+                )
+        # ------------------------------------------------------------------------------------------
         self.dataset = dataset
         self.pad = pad
         self.eos = eos
