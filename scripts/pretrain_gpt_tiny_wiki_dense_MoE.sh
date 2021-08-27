@@ -82,7 +82,7 @@ python train.py ${ddp_options} \
       --save-dir ${CHECKPOINT_PATH} \
       --save-interval-updates ${CHECKPOINT_FREQUENCY} \
       --num-workers ${DLWS_NUM_WORKER}\
-      --ddp-backend fully_sharded \
+      --ddp-backend no_c10d \
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
