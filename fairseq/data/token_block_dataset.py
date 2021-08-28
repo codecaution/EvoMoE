@@ -58,7 +58,7 @@ class TokenBlockDataset(FairseqDataset):
                 import os
                 from setuptools import sandbox
                 sandbox.run_setup(
-                    os.path.join("/home/v-xiaonannie/FairSeq-MoE/", "setup.py"),
+                    os.path.join(os.path.dirname(__file__), "../../setup.py"),
                     ["build_ext", "--inplace"],
                 )
             except ImportError:
