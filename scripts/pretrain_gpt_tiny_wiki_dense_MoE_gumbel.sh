@@ -82,7 +82,7 @@ python train.py ${ddp_options} \
       --save-dir ${CHECKPOINT_PATH} \
       --save-interval-updates ${CHECKPOINT_FREQUENCY} \
       --num-workers ${DLWS_NUM_WORKER}\
-      --ddp-backend fully_sharded \
+      --ddp-backend fully_sharded\
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
@@ -94,6 +94,7 @@ python train.py ${ddp_options} \
       --moe-normalize-expert-grad sqrt_world_size \
       --moe-eval-capacity-token-fraction -1.0 \
       --use-gumbel-softmax \
+      --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
 
       # --moe-gate-save-dir ${shared_storage}/Fairseq-Results/gates/${data_name}/${ModelSize}_${Version} \
