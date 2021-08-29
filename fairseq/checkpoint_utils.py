@@ -110,20 +110,26 @@ def save_checkpoint(
             shared = re.sub("rank-[0-9]+", "shared", checkpoints[0])
             if PathManager.islink(shared):
                 PathManager.rm(shared)
-
         trainer.save_checkpoint(
             checkpoints[0], extra_state, training_finished=training_finished, async_callback_fn=async_callback_fn
         )
-
         def copy_or_symlink(src, dest):
             if cfg.symlink_best_and_last_checkpoints:
                 PathManager.symlink(src, dest)
+            elif cfg.write_checkpoints_asynchronously:
+                pass  # TODO[ioPath]: Need to implement a delayed asynchronous file copying/moving feature.
             else:
                 assert PathManager.copy(src, dest, overwrite=True), f"Failed to copy {src} to {dest}"
 
         for cp in checkpoints[1:]:
+            # copy_or_symlink(src=checkpoints[0], dest=cp)
+            # if (trainer.is_moe or trainer.is_base_moe) and not trainer.is_fsdp and trainer.is_data_parallel_master:
+            #     copy_or_symlink(
+            #         src=re.sub("rank-[0-9]+", "shared", checkpoints[0]),
+            #         dest=re.sub("rank-[0-9]+", "shared", cp),
+            #     )
             copy_or_symlink(src=checkpoints[0], dest=cp)
-            if (trainer.is_moe or trainer.is_base_moe) and not trainer.is_fsdp and trainer.is_data_parallel_master:
+            if (trainer.is_moe or trainer.is_base_moe) and (trainer.is_data_parallel_master or trainer.is_fsdp):
                 copy_or_symlink(
                     src=re.sub("rank-[0-9]+", "shared", checkpoints[0]),
                     dest=re.sub("rank-[0-9]+", "shared", cp),
