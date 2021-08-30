@@ -90,10 +90,11 @@ python train.py ${ddp_options} \
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
       --symlink \
-      --eval-bleu \
-      --eval-bleu-args '{"beam": 5, "max_len_a": 1.2, "max_len_b": 10}' \
-      --eval-bleu-detok moses \
-      --eval-bleu-remove-bpe \
-      --best-checkpoint-metric bleu --maximize-best-checkpoint-metric
       --log-format json --log-interval 100 --tensorboard-logdir $LOG_DIR\
       --seed 1234 2>&1 | tee -a $LOG_PATH
+
+      # --eval-bleu \
+      # --eval-bleu-args '{"beam": 5, "max_len_a": 1.2, "max_len_b": 10}' \
+      # --eval-bleu-detok moses \
+      # --eval-bleu-remove-bpe \
+      # --best-checkpoint-metric bleu --maximize-best-checkpoint-metric
