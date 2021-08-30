@@ -92,6 +92,7 @@ python train.py ${ddp_options} \
       --moe-gating-use-fp32 --moe-second-expert-policy random \
       --moe-normalize-expert-grad sqrt_world_size \
       --moe-eval-capacity-token-fraction 1.0 \
+      --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
 
       # --moe-gate-save-dir ${shared_storage}/Fairseq-Results/gates/${data_name}/${ModelSize}_${Version} \

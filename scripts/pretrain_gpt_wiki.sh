@@ -86,4 +86,5 @@ python train.py ${ddp_options} \
       --max-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
       --log-format json --log-interval 100 --tensorboard-logdir $LOG_DIR\
+      --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
