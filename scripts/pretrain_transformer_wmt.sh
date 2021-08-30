@@ -1,4 +1,5 @@
 #! /bin/bash
+pip install fastBPE sacremoses subword_nmt
 export NCCL_DEBUG=INFO
 export NCCL_DEBUG_SUBSYS=INIT
 

@@ -1,4 +1,5 @@
 #! /bin/bash
+pip install fastBPE sacremoses subword_nmt
 echo -e "\n\n\n\n"
 echo "=====================================ARGS======================================"
 echo "data_name: ${DATA_NAME}"
