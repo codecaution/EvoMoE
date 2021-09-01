@@ -4,6 +4,7 @@ echo "=====================================ARGS=================================
 echo "data_name: ${DATA_NAME}"
 echo "batch size: ${BATCH_SIZE}"
 echo "layer num: ${LAYER_NUM}"
+echo "num_experts: ${NUM_EXPERTS}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
 echo "warmup_steps: ${WARMUP_STEPS}"
@@ -63,10 +64,6 @@ else
   fi
 fi
 echo "ddp_options: ${ddp_options}"
-
-NUM_EXPERTS=$(($total_gpu*$LOCAL_EXPERTS))
-echo "local_experts: ${LOCAL_EXPERTS}"
-echo "total_experts: ${NUM_EXPERTS}"
 
 python train.py ${ddp_options} \
       ${DATA_PATH} \
