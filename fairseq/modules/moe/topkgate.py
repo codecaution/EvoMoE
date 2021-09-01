@@ -49,7 +49,7 @@ def topkgating(
         logits = logits.float()
     
     if parameter.gumbel_temperature > 0:
-        gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature)
+        gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=True)
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
      
