@@ -17,7 +17,8 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 from fairseq import parameter
-from .top2gate import entropy, top2gating
+from .top1gate import top1gating
+from .top2gate import entropy
 
 
 # maximum capacity of 1 expert as a fraction of number of tokens in the batch
@@ -125,13 +126,10 @@ class TopKGate(torch.nn.Module):
                 moe_eval_capacity_token_fraction=self.moe_eval_capacity_token_fraction,
             )
         else:
-            return top2gating(
+            return top1gating(
                 logits,
                 mask,
                 use_fp32=self.use_fp32,
-                second_expert_policy='all',
-                normalize_gate_prob_before_dropping=False,
                 eval_mode=not self.training,
                 moe_eval_capacity_token_fraction=self.moe_eval_capacity_token_fraction,
-                batch_prioritized_routing=False,
             )
