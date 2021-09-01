@@ -16,7 +16,7 @@ import math
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-
+from fairseq import parameter
 from .top2gate import one_hot, entropy
 
 
@@ -42,7 +42,11 @@ def top1gating(
         orig_dtype = logits.dtype
         logits = logits.float()
 
-    gates = F.softmax(logits, dim=1)
+    if parameter.gumbel_temperature > 0:
+        gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=True)
+    else:
+        gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
+        
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
 
     # gates has shape of SE
