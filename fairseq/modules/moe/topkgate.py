@@ -18,7 +18,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from fairseq import parameter
 from .top1gate import top1gating
-from .top2gate import entropy
+from .top2gate import entropy, one_hot
 
 
 # maximum capacity of 1 expert as a fraction of number of tokens in the batch
@@ -48,15 +48,21 @@ def topkgating(
         orig_dtype = logits.dtype
         logits = logits.float()
     
+    # gates has shape of SE
+    num_tokens = logits.shape[0]
+    num_experts = logits.shape[1]    
     if parameter.gumbel_temperature > 0:
-        gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=True)
+        if parameter.gumbel_temperature == 0.1:
+            gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
+            indices1_s = torch.argmax(gates, dim=1)
+            mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
+            gates = gates * mask1
+        else:
+            gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
      
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
-    # gates has shape of SE
-    num_tokens = gates.shape[0]
-    num_experts = gates.shape[1]
     capacity = int(num_tokens)
     # Compute l_aux
     l_aux = None
