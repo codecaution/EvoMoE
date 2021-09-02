@@ -41,7 +41,10 @@ def top1gating(
     if use_fp32:
         orig_dtype = logits.dtype
         logits = logits.float()
-
+    
+    # gates has shape of SE
+    num_tokens = logits.shape[0]
+    num_experts = logits.shape[1]
     if parameter.gumbel_temperature > 0:
         # gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=True)
         gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
@@ -53,9 +56,6 @@ def top1gating(
         
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
 
-    # gates has shape of SE
-    num_tokens = gates.shape[0]
-    num_experts = gates.shape[1]
     if moe_eval_capacity_token_fraction > 0.0 and eval_mode:
         capacity = math.ceil(moe_eval_capacity_token_fraction * num_tokens)
     else:
