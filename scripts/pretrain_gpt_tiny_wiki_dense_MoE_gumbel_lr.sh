@@ -91,8 +91,8 @@ python train.py ${ddp_options} \
       --moe-normalize-expert-grad sqrt_world_size \
       --moe-eval-capacity-token-fraction 1.0 \
       --use-gumbel-softmax \
-      --gumbel-decay-scheduler Exp\
-      --gumbel-decay-factor -0.00001\
+      --gumbel-decay-scheduler Linear \
+      --gumbel-decay-factor 50000 \
       --max-temperature 1.0 \
       --min-temperature 0.5 \
       --switch-to-hard-gumbel-softmax 100000 \
