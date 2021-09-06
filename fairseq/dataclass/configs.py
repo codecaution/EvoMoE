@@ -543,7 +543,31 @@ class OptimizationConfig(FairseqDataclass):
         metadata={
             "help": "Use Gumbel-Softmax for gate distribution"}
     )
-
+    gumbel_decay_scheduler: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Decay the Gumbel Temperature, None/Linear/Exp"}
+    )
+    gumbel_decay_factor: Optional[float] = field(
+        default=1,
+        metadata={
+            "help": "The factor for decay. Such as exp(factor * t) and decay duration for linear"}
+    )    
+    max_temperature: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Decay the Gumbel Temperature"}
+    )
+    min_temperature: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Decay the Gumbel Temperature"}
+    )    
+    switch_to_hard_gumbel_softmax: Optional[int] = field(
+        default=-1, #xxx
+        metadata={
+            "help": "Use Hard Gumbel-Softmax for gate distribution aftet xxx iterations"}
+    )
 
 @dataclass
 class CheckpointConfig(FairseqDataclass):

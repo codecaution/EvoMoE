@@ -308,12 +308,24 @@ def train(
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
             if cfg.optimization.use_gumbel_softmax:
+                
                 if parameter.gumbel_temperature < 0:
                     parameter.gumbel_temperature = 1.0
-                # parameter.gumbel_temperature = max(5.0 * (50000 - num_updates)/50000, 0.5)
+                
                 if num_updates % 1000 == 0:
-                    import math
-                    parameter.gumbel_temperature = max(math.exp(-0.00001*num_updates), 0.5)
+                    if cfg.optimization.gumbel_decay_scheduler == "Exp":
+                        import math
+                        # parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(-0.00001*num_updates),\
+                        #                                     cfg.optimization.min_temperature)
+                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(cfg.optimization.factor * num_updates),\
+                                                            cfg.optimization.min_temperature)
+                    elif cfg.optimization.gumbel_decay_scheduler == "Linear":
+                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature * (50000 - cfg.optimization.factor)/50000,\
+                                                            cfg.optimization.min_temperature)
+                
+                if num_updates == cfg.optimization.switch_to_hard_gumbel_softmax:
+                    parameter.soft_gumbel_training = False
+                    
             if num_updates % cfg.common.log_interval == 0:
                 stats = get_training_stats(metrics.get_smoothed_values("train_inner"))
                 progress.log(stats, tag="train_inner", step=num_updates)
