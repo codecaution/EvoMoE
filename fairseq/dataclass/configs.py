@@ -553,15 +553,15 @@ class OptimizationConfig(FairseqDataclass):
         metadata={
             "help": "The factor for decay. Such as exp(factor * t) and decay duration for linear"}
     )    
-    max_temperature: Optional[bool] = field(
-        default=False,
+    max_temperature: Optional[float] = field(
+        default=1.0,
         metadata={
-            "help": "Decay the Gumbel Temperature"}
+            "help": "Max Gumbel Temperature"}
     )
-    min_temperature: Optional[bool] = field(
-        default=False,
+    min_temperature: Optional[float] = field(
+        default=0.5,
         metadata={
-            "help": "Decay the Gumbel Temperature"}
+            "help": "Min the Gumbel Temperature"}
     )    
     switch_to_hard_gumbel_softmax: Optional[int] = field(
         default=-1, #xxx
