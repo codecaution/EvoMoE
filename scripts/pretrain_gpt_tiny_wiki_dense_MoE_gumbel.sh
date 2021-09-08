@@ -92,9 +92,9 @@ python train.py ${ddp_options} \
       --moe-eval-capacity-token-fraction 1.0 \
       --use-gumbel-softmax \
       --gumbel-decay-scheduler Exp\
-      --gumbel-decay-factor -0.00001\
-      --max-temperature 1.0 \
-      --min-temperature 0.5 \
+      --gumbel-decay-factor 50000\
+      --max-temperature 10.0 \
+      --min-temperature 0.01 \
       --switch-to-hard-gumbel-softmax 100000 \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
