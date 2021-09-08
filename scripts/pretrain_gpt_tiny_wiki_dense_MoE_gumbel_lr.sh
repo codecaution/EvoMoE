@@ -93,8 +93,8 @@ python train.py ${ddp_options} \
       --use-gumbel-softmax \
       --gumbel-decay-scheduler Linear \
       --gumbel-decay-factor 50000 \
-      --max-temperature 1.0 \
-      --min-temperature 0.5 \
+      --max-temperature 10.0 \
+      --min-temperature 0.01 \
       --switch-to-hard-gumbel-softmax 100000 \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
