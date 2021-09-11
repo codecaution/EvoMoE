@@ -8,6 +8,7 @@ echo "num_experts: ${NUM_EXPERTS}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
 echo "warmup_steps: ${WARMUP_STEPS}"
+echo "min_temperature: ${MIN_TEMP}"
 echo "lr: ${LR}"
 echo "checkpoint_frequency: ${CHECKPOINT_FREQUENCY}"
 
@@ -94,7 +95,7 @@ python train.py ${ddp_options} \
       --gumbel-decay-scheduler Linear \
       --gumbel-decay-factor 50000 \
       --max-temperature 10.0 \
-      --min-temperature 0.01 \
+      --min-temperature ${MIN_TEMP} \
       --switch-to-hard-gumbel-softmax 100000 \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
