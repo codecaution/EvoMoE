@@ -88,7 +88,7 @@ python train.py ${ddp_options} \
       --moe-expert-count $NUM_EXPERTS --moe-freq 2 \
       --moe-gating-use-fp32 --moe-second-expert-policy random \
       --moe-normalize-expert-grad sqrt_world_size \
-      --moe-eval-capacity-token-fraction 1.0 \
+      --moe-eval-capacity-token-fraction -1.0 \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
 
