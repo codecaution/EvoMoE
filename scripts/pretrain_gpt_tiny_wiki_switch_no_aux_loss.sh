@@ -89,7 +89,7 @@ python train.py ${ddp_options} \
       --moe-gating-use-fp32 --moe-top1-expert \
       --moe-normalize-expert-grad sqrt_world_size \
       --moe-eval-capacity-token-fraction 1.0 \
-      --moe_train_capacity_token_fraction $NUM_EXPERTS\
+      --moe-train-capacity-token-fraction $NUM_EXPERTS\
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
 
