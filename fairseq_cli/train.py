@@ -516,10 +516,26 @@ def validate(
                 if cfg.dataset.max_valid_steps is not None and i > cfg.dataset.max_valid_steps:
                     break
                 trainer.valid_step(sample)
+
         # log validation stats
         stats = get_valid_stats(cfg, trainer, agg.get_smoothed_values())
         progress.print(stats, tag=subset, step=trainer.get_num_updates())
         valid_losses.append(stats[cfg.checkpoint.best_checkpoint_metric])
+
+        if cfg.model.moe_topk_expert:
+            #*******************************************Validation Dense Model**********************************************************
+            parameter.dense_validate = True
+            with metrics.aggregate(new_root=True) as agg:
+                for i, sample in enumerate(progress):
+                    if cfg.dataset.max_valid_steps is not None and i > cfg.dataset.max_valid_steps:
+                        break
+                    trainer.valid_step(sample)
+            # log validation stats
+            stats = get_valid_stats(cfg, trainer, agg.get_smoothed_values())
+            progress.print(stats, tag="validate_dense", step=trainer.get_num_updates())
+            parameter.dense_validate = False
+            #*************************************************************************************************************************
+        
     return valid_losses
 
 

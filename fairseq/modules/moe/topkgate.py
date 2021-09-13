@@ -121,7 +121,7 @@ class TopKGate(torch.nn.Module):
 
     def forward(self, input: torch.Tensor, mask: Optional[torch.Tensor] = None,) -> Tuple[Tensor, Tensor, Tensor, Dict]:  # type: ignore
         logits = self.wg(input)
-        if self.training:
+        if self.training or parameter.dense_validate == True:
             return topkgating(
                 logits,
                 mask,
