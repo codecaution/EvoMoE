@@ -229,6 +229,12 @@ class TransformerLanguageModelConfig(FairseqDataclass):
             "help": "Use top1 gate instead of top2"
         }
     )
+    moe_train_capacity_token_fraction: Optional[float] = field(
+        default=1.0,
+        metadata={
+            "help": "Default: 1.0, Fraction of tokens as capacity during training, if set to negative, use same as training. range: (0.0, 1.0]."
+        }
+    )
     moe_eval_capacity_token_fraction: Optional[float] = field(
         default=0.25,
         metadata={

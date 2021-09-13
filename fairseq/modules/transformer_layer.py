@@ -167,6 +167,7 @@ class TransformerEncoderLayer(nn.Module):
                     self.embed_dim,
                     args.moe_expert_count,
                     use_fp32=args.moe_gating_use_fp32,
+                    capacity_factor=getattr(args, "moe_train_capacity_token_fraction", 1.0),
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
                 )
             elif args.moe_topk_expert:
@@ -381,6 +382,7 @@ class TransformerDecoderLayer(nn.Module):
                     self.embed_dim,
                     args.moe_expert_count,
                     use_fp32=args.moe_gating_use_fp32,
+                    capacity_factor=getattr(args, "moe_train_capacity_token_fraction", 1.0),
                     moe_eval_capacity_token_fraction=getattr(args, "moe_eval_capacity_token_fraction", 0.25),
                 )
             elif args.moe_topk_expert:
