@@ -90,7 +90,7 @@ python train.py ${ddp_options} \
       --moe-topk-expert \
       --moe-gating-use-fp32 \
       --moe-normalize-expert-grad sqrt_world_size \
-      --moe-eval-capacity-token-fraction -1.0 \
+      --moe-eval-capacity-token-fraction 1.0 \
       --use-gumbel-softmax \
       --gumbel-decay-scheduler Linear \
       --gumbel-decay-factor 50000 \
