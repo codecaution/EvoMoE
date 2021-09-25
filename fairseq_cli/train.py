@@ -321,10 +321,10 @@ def train(
                         parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(factor * num_updates),\
                                                             cfg.optimization.min_temperature)
                     elif cfg.optimization.gumbel_decay_scheduler == "Linear":
-                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature * (cfg.optimization.gumbel_decay_factor - num_updates)/50000,\
+                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature + num_updates * (cfg.optimization.max_temperature - cfg.optimization.min_temperature)/cfg.optimization.gumbel_decay_factor, \
                                                             cfg.optimization.min_temperature)
                 
-                if num_updates == cfg.optimization.switch_to_hard_gumbel_softmax:
+                if num_updates >= cfg.optimization.switch_to_hard_gumbel_softmax:
                     parameter.soft_gumbel_training = False
                     
             if num_updates % cfg.common.log_interval == 0:

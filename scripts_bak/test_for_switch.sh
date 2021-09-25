@@ -7,14 +7,15 @@ python fairseq_cli/train.py \
   --decoder-layers 24 --decoder-embed-dim 2048 --decoder-ffn-embed-dim 8192 \
   --decoder-attention-heads 32 \
   --moe-expert-count $NUM_EXPERTS --moe-freq 2 \
-  --moe-gating-use-fp32 --moe-second-expert-policy all \
+  --moe-gating-use-fp32 --moe-top1-expert  \
   --moe-normalize-expert-grad sqrt_world_size \
-  --moe-eval-capacity-token-fraction -1.0 \
+  --moe-eval-capacity-token-fraction 1.0 \
+  --moe-train-capacity-token-fraction $NUM_EXPERTS \
   --max-sentences-valid 1 --num-workers-valid 0 \
-  --criterion moe_cross_entropy --moe-gate-loss-wt 0.01 --moe-gate-loss-combine-method sum \
+  --criterion cross_entropy \
   --optimizer adam --fp16-adam-stats --adam-betas '(0.9, 0.98)' --clip-norm 0.0 \
   --lr 0.0005 --warmup-updates 750 \
   --dropout 0.1 --attention-dropout 0.1 \
   --batch-size 4 --update-freq 1 \
-  --max-update 250 --disable-validation \
+  --max-update 250 \
   --log-format json --log-interval 10
