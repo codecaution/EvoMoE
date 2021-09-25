@@ -91,6 +91,7 @@ python train.py ${ddp_options} \
       --ddp-backend fully_sharded \
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
+      --total-num-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
       --use-gumbel-softmax \
       --gumbel-decay-scheduler Linear \

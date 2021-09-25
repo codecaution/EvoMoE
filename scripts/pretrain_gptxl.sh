@@ -6,7 +6,6 @@ echo -e "\n\n\n\n"
 echo "=====================================ARGS======================================"
 echo "data_name: ${DATA_NAME}"
 echo "batch size: ${BATCH_SIZE}"
-echo "layer num: ${LAYER_NUM}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
 echo "warmup_steps: ${WARMUP_STEPS}"
@@ -83,6 +82,7 @@ python train.py ${ddp_options} \
       --ddp-backend fully_sharded \
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
+      --total-num-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
       --log-format json --log-interval 100 \
       --symlink \
