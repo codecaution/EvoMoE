@@ -714,3 +714,14 @@ def transformer_lm_gptxl_moe(args):
     args.attention_dropout = getattr(args, "attention_dropout", 0.1)
     args.activation_fn = getattr(args, "activation_fn", "gelu")
     base_lm_architecture(args)
+
+@register_model_architecture("transformer_lm", "transformer_lm_gptmedium_moe")
+def transformer_lm_gptmedium_moe(args):
+    args.decoder_embed_dim = getattr(args, "decoder_embed_dim", 1024)
+    args.decoder_ffn_embed_dim = getattr(args, "decoder_ffn_embed_dim", 4096)
+    args.decoder_layers = getattr(args, "decoder_layers", 24)
+    args.decoder_attention_heads = getattr(args, "decoder_attention_heads", 16)
+    args.dropout = getattr(args, "dropout", 0.1)
+    args.attention_dropout = getattr(args, "attention_dropout", 0.1)
+    args.activation_fn = getattr(args, "activation_fn", "gelu")
+    base_lm_architecture(args)

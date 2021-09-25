@@ -1,13 +1,14 @@
 #! /bin/bash
+export NCCL_DEBUG=INFO
+export NCCL_DEBUG_SUBSYS=INIT
+
 echo -e "\n\n\n\n"
 echo "=====================================ARGS======================================"
 echo "data_name: ${DATA_NAME}"
 echo "batch size: ${BATCH_SIZE}"
-echo "num_experts: ${NUM_EXPERTS}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
 echo "warmup_steps: ${WARMUP_STEPS}"
-echo "moe_freq: ${MOE_FREQ}"
 echo "lr: ${LR}"
 echo "checkpoint_frequency: ${CHECKPOINT_FREQUENCY}"
 
@@ -48,7 +49,6 @@ echo "=====================================DDP Option===========================
 GPU_PER_NODE_COUNT=$DLWS_NUM_GPU_PER_WORKER
 MASTER_ADDR=$MASTER_IP
 MASTER_PORT=$MASTER_PORT
-total_gpu=$GPU_PER_NODE_COUNT
 
 if [[ -z "${OMPI_COMM_WORLD_SIZE}" ]]
 then
@@ -65,7 +65,6 @@ else
 fi
 echo "ddp_options: ${ddp_options}"
 
-
 python train.py ${ddp_options} \
       ${DATA_PATH} \
       --task language_modeling \
@@ -76,10 +75,6 @@ python train.py ${ddp_options} \
       --optimizer adam --adam-betas '(0.9, 0.98)' --adam-eps 1e-08 \
       --clip-norm 5.0 --weight-decay 0.1 --dropout 0.1 \
       --criterion cross_entropy \
-      --moe-expert-count $NUM_EXPERTS --moe-freq $MOE_FREQ \
-      --moe-gating-use-fp32 --moe-top1-expert \
-      --moe-normalize-expert-grad sqrt_world_size \
-      --moe-eval-capacity-token-fraction -1.0 \
       --write-checkpoints-asynchronously \
       --save-dir ${CHECKPOINT_PATH} \
       --save-interval-updates ${CHECKPOINT_FREQUENCY} \

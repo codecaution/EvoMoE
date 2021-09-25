@@ -3,7 +3,6 @@ echo -e "\n\n\n\n"
 echo "=====================================ARGS======================================"
 echo "data_name: ${DATA_NAME}"
 echo "batch size: ${BATCH_SIZE}"
-echo "layer num: ${LAYER_NUM}"
 echo "num_experts: ${NUM_EXPERTS}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
@@ -73,7 +72,7 @@ echo "ddp_options: ${ddp_options}"
 python train.py ${ddp_options} \
       ${DATA_PATH} \
       --task language_modeling \
-      --arch transformer_lm_gptxl_moe \
+      --arch transformer_lm_gptmedium_moe \
       --share-decoder-input-output-embed \
       --tokens-per-sample ${TOKENS_PER_SAMPLE} --batch-size ${BATCH_SIZE} --update-freq ${UPDATE_FREQ} \
       --lr ${LR} --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
