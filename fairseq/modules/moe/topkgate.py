@@ -27,7 +27,7 @@ EVAL_CAPACITY_TOKEN_FRACTION = 0.25
 
 # logging
 SAMPLE_FRACTION = 0.2
-
+GUMBEL_THRESHOLD = 0.02
 
 def topkgating(
     logits: torch.Tensor,
@@ -47,7 +47,6 @@ def topkgating(
     if use_fp32:
         orig_dtype = logits.dtype
         logits = logits.float()
-    
     # gates has shape of SE
     num_tokens = logits.shape[0]
     num_experts = logits.shape[1]    
@@ -59,6 +58,9 @@ def topkgating(
             indices1_s = torch.argmax(gates, dim=1)
             mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
             gates = gates * mask1
+        experts_choosed = torch.gt(gates, GUMBEL_THRESHOLD)
+        gates = experts_choosed * gates
+        metadata["gumbel_choosed_experts"] = experts_choosed.sum()
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
      

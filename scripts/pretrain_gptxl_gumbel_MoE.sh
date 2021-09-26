@@ -78,7 +78,7 @@ python train.py ${ddp_options} \
       --lr ${LR} --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
       --optimizer adam --adam-betas '(0.9, 0.98)' --adam-eps 1e-08 \
       --clip-norm 5.0 --weight-decay 0.1 --dropout 0.1 \
-      --criterion cross_entropy \
+      --criterion cross_entropy_gumbel \
       --moe-expert-count $NUM_EXPERTS --moe-freq $MOE_FREQ \
       --moe-gating-use-fp32 --moe-topk-expert \
       --moe-normalize-expert-grad sqrt_world_size \
