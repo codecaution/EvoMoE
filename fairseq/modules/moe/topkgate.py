@@ -134,10 +134,12 @@ class TopKGate(torch.nn.Module):
                 moe_eval_capacity_token_fraction=self.moe_eval_capacity_token_fraction,
             )
         else:
+            # logits.shape[1]: num experts
             return top1gating(
                 logits,
                 mask,
                 use_fp32=self.use_fp32,
                 eval_mode=not self.training,
+                capacity_factor=logits.shape[1],
                 moe_eval_capacity_token_fraction=self.moe_eval_capacity_token_fraction,
             )
