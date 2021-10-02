@@ -72,7 +72,7 @@ python train.py ${ddp_options} \
       --arch roberta_large \
       --criterion masked_lm \
       --tokens-per-sample ${TOKENS_PER_SAMPLE} --batch-size ${BATCH_SIZE} --update-freq ${UPDATE_FREQ} \
-      --lr ${LR} --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
+      --lr 0.0001 --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
       --optimizer adam --adam-betas '(0.9, 0.98)' --adam-eps 1e-08 \
       --clip-norm 0.0 --weight-decay 0.01 --dropout 0.1 \
       --write-checkpoints-asynchronously \
