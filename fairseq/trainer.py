@@ -740,22 +740,22 @@ class Trainer(object):
         for i, sample in enumerate(samples):  # delayed update loop
             sample, is_dummy_batch = self._prepare_sample(sample)
             # print(sample['net_input']['src_tokens'].shape)
-            # # MoE training with --batch-size or --max-sentences set
-            # if self.is_moe and getattr(self.cfg.dataset, 'batch_size', None) is not None:
-            #     try:
-            #         fixed_src_seq_length = getattr(self.cfg.task, 'tokens_per_sample', None) or self.cfg.task.max_source_positions
-            #         assert sample['net_input']['src_tokens'].shape[1] == fixed_src_seq_length
-            #     except:
-            #         logger.warning(str(sample.keys()))
-            #         logger.warning(str(sample['net_input'].keys()))
-            #         logger.warning(is_dummy_batch)
-            #         logger.warning(
-            #             "wrong seq len {} on rank {}".format(
-            #                     sample['net_input']['src_tokens'].shape[1],
-            #                     torch.distributed.get_rank(),
-            #             )
-            #         )
-            #         raise AssertionError
+            # MoE training with --batch-size or --max-sentences set
+            if self.is_moe and getattr(self.cfg.dataset, 'batch_size', None) is not None:
+                try:
+                    fixed_src_seq_length = getattr(self.cfg.task, 'tokens_per_sample', None) or self.cfg.task.max_source_positions
+                    assert sample['net_input']['src_tokens'].shape[1] == fixed_src_seq_length
+                except:
+                    logger.warning(str(sample.keys()))
+                    logger.warning(str(sample['net_input'].keys()))
+                    logger.warning(is_dummy_batch)
+                    logger.warning(
+                        "wrong seq len {} on rank {}".format(
+                                sample['net_input']['src_tokens'].shape[1],
+                                torch.distributed.get_rank(),
+                        )
+                    )
+                    raise AssertionError
 
             def maybe_no_sync():
                 """

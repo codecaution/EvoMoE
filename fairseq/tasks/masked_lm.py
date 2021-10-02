@@ -204,12 +204,14 @@ class MaskedLMTask(LegacyFairseqTask):
                         "src_tokens": RightPadDataset(
                             src_dataset,
                             pad_idx=self.source_dictionary.pad(),
+                            pad_length=self.args.tokens_per_sample,
                         ),
                         "src_lengths": NumelDataset(src_dataset, reduce=False),
                     },
                     "target": RightPadDataset(
                         tgt_dataset,
                         pad_idx=self.source_dictionary.pad(),
+                        pad_length=self.args.tokens_per_sample,
                     ),
                     "nsentences": NumSamplesDataset(),
                     "ntokens": NumelDataset(src_dataset, reduce=True),
