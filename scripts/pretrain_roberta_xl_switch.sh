@@ -68,13 +68,13 @@ echo "ddp_options: ${ddp_options}"
 python train.py ${ddp_options} \
       ${DATA_PATH} \
       --task masked_lm \
-      --sample-break-mode none \
+      --sample-break-mode complete \
       --arch roberta_large_moe \
       --tokens-per-sample ${TOKENS_PER_SAMPLE} --batch-size ${BATCH_SIZE} --update-freq ${UPDATE_FREQ} \
       --criterion moe_masked_lm --moe-gate-loss-wt 0.01 --moe-gate-loss-combine-method sum \
       --lr ${LR} --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
       --optimizer adam --adam-betas '(0.9, 0.98)' --adam-eps 1e-08 \
-      --clip-norm 5.0 --weight-decay 0.1 --dropout 0.1 \
+      --clip-norm 0.0 --weight-decay 0.01 --dropout 0.1 \
       --moe-expert-count $NUM_EXPERTS --moe-freq $MOE_FREQ \
       --moe-gating-use-fp32 --moe-top1-expert \
       --moe-normalize-expert-grad sqrt_world_size \
