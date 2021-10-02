@@ -513,7 +513,7 @@ class RobertaEncoder(FairseqEncoder):
         # T x B x C -> B x T x C
         features = encoder_out["encoder_out"][0].transpose(0, 1)
         inner_states = encoder_out["encoder_states"] if return_all_hiddens else None
-        return features, {"inner_states": inner_states}
+        return features, {"inner_states": inner_states, "l_aux": encoder_out['l_aux']}
 
     def output_layer(self, features, masked_tokens=None, **unused):
         return self.lm_head(features, masked_tokens)
@@ -593,5 +593,21 @@ def xlm_architecture(args):
     args.encoder_layers = getattr(args, "encoder_layers", 16)
     args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1280)
     args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 1280 * 4)
+    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 16)
+    base_architecture(args)
+
+@register_model_architecture("roberta", "roberta_xl")
+def roberta_large_architecture(args):
+    args.encoder_layers = getattr(args, "encoder_layers", 48)
+    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1600)
+    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 6400)
+    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 25)
+    base_architecture(args)
+
+@register_model_architecture("roberta", "roberta_large_moe")
+def roberta_large_architecture(args):
+    args.encoder_layers = getattr(args, "encoder_layers", 24)
+    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1024)
+    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 4096)
     args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 16)
     base_architecture(args)
