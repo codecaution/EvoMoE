@@ -99,4 +99,5 @@ python train.py ${ddp_options} \
       --switch-to-hard-gumbel-softmax ${HARD_GUMBEL_ITERATIONS} \
       --log-format json --log-interval 100 \
       --symlink \
+      --skip-invalid-size-inputs-valid-test \
       --seed 1234 2>&1 | tee -a $LOG_PATH
