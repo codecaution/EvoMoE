@@ -168,7 +168,35 @@ class RobertaModel(FairseqEncoderModel):
             default=False,
             help="Apply spectral normalization on the classification head",
         )
-
+        parser.add_argument('--moe-freq', type=int, metavar='D', default=0,
+                            help='Frequency at which we insert MoE Transformer layers')
+        parser.add_argument('--moe-expert-count', type=int, metavar='D', default=0,
+                            help='Number of experts in each MoE Layer')
+        parser.add_argument('--moe-gating-use-fp32', default=False, action='store_true',
+                            help="Use FP32 computations in MoE top2 gating function")
+        parser.add_argument('--moe-second-expert-policy', type=str, default='sampling',
+                            help="policy for second expert, options: all/sampling/random")
+        parser.add_argument('--moe-normalize-gate-prob-before-dropping', default=False, action='store_true',
+                            help="whether to normalize gate probs before or after dropping experts for capacity and randomization")
+        parser.add_argument('--moe-expert-ffn-dim', type=int, default=0,
+                            help="MoE Expert FFN dimension")
+        parser.add_argument('--moe-top1-expert', default=False, action='store_true',
+                            help="Use top1 gate instead of top2")
+        parser.add_argument('--moe-eval-capacity-token-fraction', type=float, default=0.25,
+                            help="Fraction of tokens as capacity during validation" + \
+                                 "if set to negative, use same as training. range: (0.0, 1.0].")
+        parser.add_argument('--moe-normalize-expert-grad', type=str, default='world_size',
+                            help="Divide expert gradients by (1) 'world_size' (2) 'sqrt_world_size'")
+        parser.add_argument('--use-moe-pad-mask', default=False, action='store_true',
+                            help="Don't route padding tokens to any expert")
+        # args for pseudo-MoE layers
+        parser.add_argument('--alternate-ffn-embed-dim', type=int, default=0,
+                            help="FFN embed dim of alternate pseudo-MoE blocks")
+        parser.add_argument('--moe-topk-expert', default=False, action='store_true',
+                            help="Use topk gate")
+        parser.add_argument('--topk', type=int, default=-1,
+                            help="k for topk gate")
+        
     @classmethod
     def build_model(cls, args, task):
         """Build a new model instance."""
