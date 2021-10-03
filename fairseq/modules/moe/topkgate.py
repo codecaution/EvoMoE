@@ -51,7 +51,7 @@ def topkgating(
     num_tokens = logits.shape[0]
     num_experts = logits.shape[1]    
     if parameter.gumbel_temperature > 0:
-        log_logits =F.softmax(logits, dim=1).log()
+        log_logits = F.relu(logits).log()
         if parameter.soft_gumbel_training == True:
             gates = F.gumbel_softmax(log_logits, tau=parameter.gumbel_temperature, hard=False)
         else:
