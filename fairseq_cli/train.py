@@ -309,17 +309,16 @@ def train(
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
             if cfg.optimization.use_gumbel_softmax:
-                if num_updates % 1000 == 0:
-                    if cfg.optimization.gumbel_decay_scheduler == "Exp":
-                        import math
-                        # parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(-0.00001*num_updates),\
-                        #                                     cfg.optimization.min_temperature)
-                        factor = math.log(cfg.optimization.min_temperature/cfg.optimization.max_temperature) / cfg.optimization.gumbel_decay_factor
-                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(factor * num_updates),\
-                                                            cfg.optimization.min_temperature)
-                    elif cfg.optimization.gumbel_decay_scheduler == "Linear":
-                        parameter.gumbel_temperature = max(cfg.optimization.max_temperature + num_updates * (cfg.optimization.max_temperature - cfg.optimization.min_temperature)/cfg.optimization.gumbel_decay_factor, \
-                                                            cfg.optimization.min_temperature)
+                if cfg.optimization.gumbel_decay_scheduler == "Exp":
+                    import math
+                    # parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(-0.00001*num_updates),\
+                    #                                     cfg.optimization.min_temperature)
+                    factor = math.log(cfg.optimization.min_temperature/cfg.optimization.max_temperature) / cfg.optimization.gumbel_decay_factor
+                    parameter.gumbel_temperature = max(cfg.optimization.max_temperature * math.exp(factor * num_updates),\
+                                                        cfg.optimization.min_temperature)
+                elif cfg.optimization.gumbel_decay_scheduler == "Linear":
+                    parameter.gumbel_temperature = max(cfg.optimization.max_temperature - num_updates * (cfg.optimization.max_temperature - cfg.optimization.min_temperature)/cfg.optimization.gumbel_decay_factor, \
+                                                        cfg.optimization.min_temperature)
                 
                 if num_updates >= cfg.optimization.switch_to_hard_gumbel_softmax:
                     parameter.soft_gumbel_training = False
