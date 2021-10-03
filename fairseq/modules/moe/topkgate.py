@@ -59,8 +59,6 @@ def topkgating(
             indices1_s = torch.argmax(gates, dim=1)
             mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
             gates = gates * mask1
-        print(gates.sort())
-        assert 1 == -1
         experts_choosed = torch.gt(gates, GUMBEL_THRESHOLD)
         gates = experts_choosed * gates
         metadata["gumbel_choosed_experts"] = experts_choosed.sum()
