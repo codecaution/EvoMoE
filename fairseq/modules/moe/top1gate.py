@@ -47,7 +47,7 @@ def top1gating(
     num_experts = logits.shape[1]
     if parameter.gumbel_temperature > 0:
         # gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=True)
-        log_logits =F.relu(logits).log()
+        log_logits = (F.relu(logits) + 1e-7).log()
         gates = F.gumbel_softmax(log_logits, tau=parameter.gumbel_temperature, hard=False)
         indices1_s = torch.argmax(gates, dim=1)
         mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
