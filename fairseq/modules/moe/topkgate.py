@@ -49,7 +49,9 @@ def topkgating(
         logits = logits.float()
     # gates has shape of SE
     num_tokens = logits.shape[0]
-    num_experts = logits.shape[1]    
+    num_experts = logits.shape[1]
+    # Compute l_aux
+    l_aux = None
     if parameter.gumbel_temperature > 0:
         log_logits = logits
         if parameter.soft_gumbel_training == True:
@@ -60,15 +62,18 @@ def topkgating(
             mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
             gates = gates * mask1
         experts_choosed = torch.gt(gates, GUMBEL_THRESHOLD)
+        # Compute l_aux
+        me = torch.mean(gates, dim=0)
+        ce = torch.mean(experts_choosed.to(gates.dtype), dim=0)
+        l_aux = torch.mean(me * ce)
+        l_aux = l_aux * num_experts * num_experts
+        ##########################################################
         gates = experts_choosed * gates
         metadata["gumbel_choosed_experts"] = experts_choosed.sum()
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
-     
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
     capacity = int(num_tokens)
-    # Compute l_aux
-    l_aux = None
     # S, E, C
     # combine_sec = torch.zeros((num_tokens, num_experts, capacity), dtype=torch.float32, device=gates.device)
     # for i in range(num_tokens):

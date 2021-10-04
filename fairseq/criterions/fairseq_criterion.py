@@ -181,7 +181,6 @@ class MoECriterion(FairseqCriterion):
         3) logging outputs to display while training
         """
         loss, inner_loss, moe_loss, moe_metadata, sample_size, logging_output = self.compute_loss(model, sample, reduce=reduce)
-
         logging_output["loss"] = loss.data
         logging_output["moe_loss"] = moe_loss.data
         logging_output.update(moe_metadata)
@@ -210,7 +209,7 @@ class MoECriterion(FairseqCriterion):
 
     def get_moe_metadata(self, model):
         moe_logging_output = {}
-        for key in MoECriterion.moe_logging_keys:
+        for key in MoECriterion.moe_logging_keys + ['gumbel_choosed_experts', ]:
             total_val = 0
             count = 0
             for _, module in model.named_modules():
@@ -235,6 +234,10 @@ class MoECriterion(FairseqCriterion):
         )
         metrics.log_scalar(
             "moe_gate_loss", moe_loss_sum / sample_size, sample_size, round=8
+        )
+        gumbel_choosed_experts = sum(log.get("gumbel_choosed_experts", 0) for log in logging_outputs)
+        metrics.log_scalar(
+                "gumbel_avg_experts", gumbel_choosed_experts / sample_size, sample_size, round=3
         )
         batch_count = sum(log.get("batch_count", 0) for log in logging_outputs)
         for key in MoECriterion.moe_logging_keys:
