@@ -8,10 +8,12 @@ echo "data_name: ${DATA_NAME}"
 echo "batch size: ${BATCH_SIZE}"
 echo "max updates: ${MAX_UPDATES}"
 echo "update_freq: ${UPDATE_FREQ}"
-echo "warmup_steps: ${WARMUP_STEPS}"
 echo "lr: ${LR}"
+echo "min_lr: ${MIN_LR}"
+echo "warmup_steps: ${WARMUP_STEPS}"
+echo "decay_steps: ${DECAY_STEPS}"
 echo "checkpoint_frequency: ${CHECKPOINT_FREQUENCY}"
-
+echo "validate_frequency: ${VALIDATE_FREQUENCY}"
 echo -e "\n\n\n\n"
 echo "=====================================PATH========================================"
 
@@ -78,13 +80,13 @@ python train.py ${ddp_options} \
       --criterion cross_entropy \
       --write-checkpoints-asynchronously \
       --save-dir ${CHECKPOINT_PATH} \
-      --save-interval-updates ${SAVE_FREQUENCY} \
+      --save-interval-updates ${CHECKPOINT_FREQUENCY} \
       --num-workers ${DLWS_NUM_WORKER}\
       --ddp-backend fully_sharded --no-reshard-after-forward True\
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
       --total-num-update ${MAX_UPDATES} \
-      --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
+      --validate-interval-updates ${VALIDATE_FREQUENCY} \
       --log-format json --log-interval 500 \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
