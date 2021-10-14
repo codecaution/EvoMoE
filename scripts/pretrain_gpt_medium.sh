@@ -85,7 +85,6 @@ python train.py ${ddp_options} \
       --ddp-backend fully_sharded --no-reshard-after-forward True\
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
-      --total-num-update ${MAX_UPDATES} \
       --validate-interval-updates ${VALIDATE_FREQUENCY} \
       --log-format json --log-interval 500 \
       --symlink \
