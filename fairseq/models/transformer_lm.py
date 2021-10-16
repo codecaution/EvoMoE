@@ -242,9 +242,9 @@ class TransformerLanguageModelConfig(FairseqDataclass):
         }
     )
     moe_normalize_expert_grad: Optional[str] = field(
-        default='world_size',
+        default='none',
         metadata={
-            "help": "Divide expert gradients by (1) 'world_size' (2) 'sqrt_world_size'"
+            "help": "Divide expert gradients by (1) 'world_size' (2) 'sqrt_world_size' (3) 'none'"
         }
     )
     use_moe_pad_mask: Optional[bool] = field(

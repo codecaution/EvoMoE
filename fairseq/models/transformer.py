@@ -52,15 +52,18 @@ def fsdp_wrap_expert(args, layer, min_num_params=0):
         layer.moe_layer.experts[i] = fsdp_wrap(
             expert, process_group=process_group, min_num_params=0
         )
-    if getattr(args, "moe_normalize_expert_grad", "world_size") == "sqrt_world_size":
+    divide_choice = getattr(args, "moe_normalize_expert_grad", "none")
+    if divide_choice == "sqrt_world_size":
         expert_normalization_term = math.sqrt(num_experts)
-    else:
+    elif divide_choice == "world_size":
         expert_normalization_term = num_experts
+    
     for p in layer.moe_layer.experts.parameters():
         p.expert = True
         # Scale grads by world_size/pg_size so that grads match the equivalent replicated
         # world size expected within Trainer
-        p.register_hook(functools.partial(div_by_world_size, expert_normalization_term))
+        if divide_choice != "none":
+            p.register_hook(functools.partial(div_by_world_size, expert_normalization_term))
 
     # Everything else gets wrapped as normal.
     layer = fsdp_wrap(layer, min_num_params=min_num_params)
