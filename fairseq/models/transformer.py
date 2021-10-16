@@ -57,7 +57,9 @@ def fsdp_wrap_expert(args, layer, min_num_params=0):
         expert_normalization_term = math.sqrt(num_experts)
     elif divide_choice == "world_size":
         expert_normalization_term = num_experts
-    
+    else:
+        expert_normalization_term = 1.0
+
     for p in layer.moe_layer.experts.parameters():
         p.expert = True
         # Scale grads by world_size/pg_size so that grads match the equivalent replicated
