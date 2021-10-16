@@ -13,6 +13,7 @@ echo "checkpoint_frequency: ${CHECKPOINT_FREQUENCY}"
 echo "validate_frequency: ${VALIDATE_FREQUENCY}"
 echo "num_experts: ${NUM_EXPERTS}"
 echo "moe_freq: ${MOE_FREQ}"
+echo "expert_normalize: ${EXPERT_NORMALIZE}"
 echo -e "\n\n\n\n"
 echo "=====================================PATH========================================"
 
