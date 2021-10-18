@@ -543,6 +543,11 @@ class OptimizationConfig(FairseqDataclass):
         metadata={
             "help": "Use Gumbel-Softmax for gate distribution"}
     )
+    use_gumbel_gates: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Use Gumbel-Softmax gates for experts' combination"}
+    )
     gumbel_decay_scheduler: Optional[str] = field(
         default=None,
         metadata={

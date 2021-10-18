@@ -291,6 +291,9 @@ def train(
     progress.update_config(_flatten_config(cfg))
     if cfg.optimization.use_gumbel_softmax and parameter.gumbel_temperature < 0:
         parameter.gumbel_temperature = cfg.optimization.max_temperature
+    if cfg.optimization.use_gumbel_gates:
+        parameter.use_gumbel_gates = True
+        
     trainer.begin_epoch(epoch_itr.epoch)
     if cfg.task._name in ["multilingual_language_modeling", "translation_multi_simple_epoch"]:
         valid_subsets = task.args.valid_subset.split(",")

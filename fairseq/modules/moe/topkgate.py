@@ -53,22 +53,26 @@ def topkgating(
     # Compute l_aux
     l_aux = None
     if parameter.gumbel_temperature > 0:
-        log_logits = logits
         if parameter.soft_gumbel_training == True:
-            gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
+            gumbel_gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
+            experts_choosed = torch.gt(gumbel_gates, GUMBEL_THRESHOLD)
         else:
-            gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
-            indices1_s = torch.argmax(gates, dim=1)
-            mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
-            gates = gates * mask1
-        experts_choosed = torch.gt(gates, GUMBEL_THRESHOLD)
+            gumbel_gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
+            indices1_s = torch.argmax(gumbel_gates, dim=1)
+            experts_choosed = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)
+        #############Switch between different gates weights#######
+        if parameter.use_gumbel_gates:
+            gates = experts_choosed * gumbel_gates
+        else:
+            # use softmax gates
+            gates = experts_choosed * F.softmax(logits, dim=1)
+        ##########################################################
         # Compute l_aux
         me = torch.mean(gates, dim=0)
         ce = torch.mean(experts_choosed.to(gates.dtype), dim=0)
         l_aux = torch.mean(me * ce)
         l_aux = l_aux * num_experts * num_experts
         ##########################################################
-        gates = experts_choosed * gates
         metadata["gumbel_choosed_experts"] = experts_choosed.sum()
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
@@ -79,8 +83,13 @@ def topkgating(
     # for i in range(num_tokens):
     #     for j in range(num_experts):
     #         combine_sec[i][j][i] = gates[i][j]
+    
+    # ------------------------------------------- 
+    # !!!! Need to be optimized !!!
     combine_sec = torch.diag_embed(gates.permute(1,0)).permute(1, 0, 2).contiguous()
     dispatch_mask = combine_sec.bool()
+    # ------------------------------------------- 
+
     if use_fp32:
         return l_aux, combine_sec.to(orig_dtype), dispatch_mask, metadata
     else:
