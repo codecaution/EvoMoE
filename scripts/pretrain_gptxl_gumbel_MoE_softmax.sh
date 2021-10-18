@@ -96,7 +96,6 @@ python train.py ${ddp_options} \
       --max-update ${MAX_UPDATES} \
       --validate-interval-updates ${VALIDATE_FREQUENCY} \
       --use-gumbel-softmax \
-      --use-gumbel-gates \
       --gumbel-decay-scheduler Linear \
       --gumbel-decay-factor ${GUMBEL_DECAY_ITERATIONS} \
       --max-temperature ${MAX_TEMP} \
