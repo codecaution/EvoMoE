@@ -41,7 +41,7 @@ def save_trace(gates, dispatch_mask, layer_id):
     rk = dist.get_rank()
     output_path = os.path.join(parameter.save_dir, "trace")
     
-    if rk % 8 == 0:
+    if rk == 0:
         if not os.path.exists(output_path):
             os.makedirs(output_path)
         torch.distributed.barrier()
