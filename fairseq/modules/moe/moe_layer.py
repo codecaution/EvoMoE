@@ -40,8 +40,14 @@ def save_trace(gates, dispatch_mask, layer_id):
     output = {'gates': gates, 'token_to_expert': token_to_expert}
     rk = dist.get_rank()
     output_path = os.path.join(parameter.save_dir, "trace")
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    
+    if rk % 8 == 0:
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        torch.distributed.barrier()
+    else:
+        torch.distributed.barrier()
+
     output['rank'] = rk
     output['updates'] = parameter.num_updates
     output['layer_id'] = layer_id
