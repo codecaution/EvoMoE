@@ -48,7 +48,7 @@ def save_trace(gates, dispatch_mask, layer_id):
     output_file = os.path.join(output_path, "switch_trace_rank_{}_updates_{}_layer_{}.pt".format(rk, parameter.num_updates, layer_id))
 
     if not os.path.exists(output_file):
-        torch.save(output, output_path)
+        torch.save(output, output_file)
 
 class MOELayer(Base):
     """MOELayer module which implements MixtureOfExperts as described in Gshard_.

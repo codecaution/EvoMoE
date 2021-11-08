@@ -4,3 +4,4 @@ dense_validate=False
 use_gumbel_gates=False
 save_dir = None
 save_trace=False
+num_updates = 0

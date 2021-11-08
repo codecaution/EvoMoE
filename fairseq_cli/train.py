@@ -303,6 +303,7 @@ def train(
         valid_subsets = cfg.dataset.valid_subset.split(",")
     should_stop = False
     num_updates = trainer.get_num_updates()
+    parameter.num_updates = num_updates
     logger.info("Start iterating over samples")
     for i, samples in enumerate(progress):
         with metrics.aggregate("train_inner"), torch.autograd.profiler.record_function(
@@ -313,6 +314,7 @@ def train(
         if log_output is not None:  # not OOM, overflow, ...
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
+            parameter.num_updates = num_updates
             if cfg.optimization.use_gumbel_softmax:
                 if cfg.optimization.gumbel_decay_scheduler == "Exp":
                     import math
