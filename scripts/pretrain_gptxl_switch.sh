@@ -93,4 +93,5 @@ python train.py ${ddp_options} \
       --validate-interval-updates ${VALIDATE_FREQUENCY} \
       --log-format json --log-interval 500 \
       --symlink \
+      --save-trace \
       --seed 1234 2>&1 | tee -a $LOG_PATH

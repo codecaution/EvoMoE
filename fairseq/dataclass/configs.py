@@ -719,6 +719,11 @@ class CheckpointConfig(FairseqDataclass):
         },
     )
     model_parallel_size: int = II("common.model_parallel_size")
+    save_trace: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Save the routing trace"}
+    )
 
 
 @dataclass

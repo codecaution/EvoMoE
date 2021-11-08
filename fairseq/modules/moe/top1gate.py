@@ -49,7 +49,8 @@ def top1gating(
         gates = F.gumbel_softmax(logits, tau=parameter.gumbel_temperature, hard=False)
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
-        
+    metadata["gate_weights"] = gates
+    
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
 
     if moe_eval_capacity_token_fraction > 0.0 and eval_mode:

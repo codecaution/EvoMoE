@@ -11,12 +11,14 @@ import time
 from typing import TYPE_CHECKING, Any, Optional, Tuple, Union, cast
 
 import torch
+import os
 import torch.distributed as dist
 from torch import Tensor
 from torch.cuda import Event as CudaEvent
 from torch.nn import Module, ModuleList
 from fairseq import distributed_utils
 from .moe_communication import _AllToAll
+from fairseq import parameter
 
 if TYPE_CHECKING:
     Base = Module[Tensor]
@@ -25,7 +27,28 @@ else:
 
 
 logger = logging.getLogger(__name__)
+layer_id = 0
+# Gate Log structure:
+# {batch_id: 
+#           {Layer_id: "gates":{}}
+# }
+# 
 
+def save_trace(gates, dispatch_mask, layer_id):
+    # (S, E, C)
+    token_to_expert = torch.sum(dispatch_mask, dim=2)
+    output = {'gates': gates, 'token_to_expert': token_to_expert}
+    rk = dist.get_rank()
+    output_path = os.path.join(parameter.save_dir, "trace")
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    output['rank'] = rk
+    output['updates'] = parameter.num_updates
+    output['layer_id'] = layer_id
+    output_file = os.path.join(output_path, "switch_trace_rank_{}_updates_{}_layer_{}.pt".format(rk, parameter.num_updates, layer_id))
+
+    if not os.path.exists(output_file):
+        torch.save(output, output_path)
 
 class MOELayer(Base):
     """MOELayer module which implements MixtureOfExperts as described in Gshard_.
@@ -63,6 +86,9 @@ class MOELayer(Base):
         self.in_generation = False
         self.a2a_cuda_event_intervals = []
         self.a2a_cpu_time_ms = 0.0
+        global layer_id
+        self.layer_id = layer_id
+        layer_id += 1
 
     def forward(self, *input: Tensor, input_padding_mask=None, **kwargs: Any) -> Tensor:
         assert len(input) == 1, "only single input Tensor supported"
@@ -132,6 +158,10 @@ class MOELayer(Base):
             reshaped_input_padding_mask = padded_input_padding_mask
         # combine_weights, dispatch_mask: (tokens, num_experts, capacity)
         l_aux, combine_weights, dispatch_mask, self.metadata = self.gate(reshaped_input, reshaped_input_padding_mask)
+
+        if parameter.save_trace:
+            save_trace(self.metadata["gate_weights"], dispatch_mask, self.layer_id)
+
         dispatch_mask = dispatch_mask.to(input.dtype).permute(1, 2, 0)  # S,E,C -> E,C,S
         E, C, S = dispatch_mask.size()
         M = reshaped_input.size(1)

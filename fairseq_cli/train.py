@@ -293,7 +293,9 @@ def train(
         parameter.gumbel_temperature = cfg.optimization.max_temperature
     if cfg.optimization.use_gumbel_gates:
         parameter.use_gumbel_gates = True
-        
+    parameter.save_dir = cfg.checkpoint.save_dir
+    parameter.save_trace = cfg.checkpoint.save_trace
+    
     trainer.begin_epoch(epoch_itr.epoch)
     if cfg.task._name in ["multilingual_language_modeling", "translation_multi_simple_epoch"]:
         valid_subsets = task.args.valid_subset.split(",")
