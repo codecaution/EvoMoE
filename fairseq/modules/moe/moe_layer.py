@@ -36,25 +36,25 @@ layer_id = 0
 
 def save_trace(gates, dispatch_mask, layer_id):
     # (S, E, C)
-    token_to_expert = torch.sum(dispatch_mask, dim=2)
-    output = {'gates': gates, 'token_to_expert': token_to_expert}
-    rk = dist.get_rank()
-    output_path = os.path.join(parameter.save_dir, "trace")
-    
-    if rk == 0:
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        torch.distributed.barrier()
-    else:
-        torch.distributed.barrier()
+    # token_to_expert = torch.sum(dispatch_mask, dim=2)
+    if parameter.num_updates % 20 == 0:
+        output = {'gates': gates}
+        rk = dist.get_rank()
+        output_path = os.path.join(parameter.save_dir, "trace/updates_" + str(parameter.num_updates))    
+        if rk == 0:
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            torch.distributed.barrier()
+        else:
+            torch.distributed.barrier()
 
-    output['rank'] = rk
-    output['updates'] = parameter.num_updates
-    output['layer_id'] = layer_id
-    output_file = os.path.join(output_path, "switch_trace_rank_{}_updates_{}_layer_{}.pt".format(rk, parameter.num_updates, layer_id))
+        output['rank'] = rk
+        output['updates'] = parameter.num_updates
+        output['layer_id'] = layer_id
+        output_file = os.path.join(output_path, "switch_trace_rank_{}_updates_{}_layer_{}.pt".format(rk, parameter.num_updates, layer_id))
 
-    if not os.path.exists(output_file):
-        torch.save(output, output_file)
+        if not os.path.exists(output_file):
+            torch.save(output, output_file)
 
 class MOELayer(Base):
     """MOELayer module which implements MixtureOfExperts as described in Gshard_.
