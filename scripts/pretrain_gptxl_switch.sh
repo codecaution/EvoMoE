@@ -82,6 +82,7 @@ python train.py ${ddp_options} \
       --moe-expert-count $NUM_EXPERTS --moe-freq $MOE_FREQ \
       --moe-gating-use-fp32 --moe-top1-expert \
       --moe-normalize-expert-grad $EXPERT_NORMALIZE\
+      --moe-train-capacity-token-fraction 2.0 \
       --moe-eval-capacity-token-fraction -1.0 \
       --write-checkpoints-asynchronously \
       --save-dir ${CHECKPOINT_PATH} \
@@ -90,7 +91,7 @@ python train.py ${ddp_options} \
       --ddp-backend fully_sharded --no-reshard-after-forward\
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
-      --validate-interval-updates ${VALIDATE_FREQUENCY} \
+      --validate-interval-updates ${VALIDATE_FREQUENCY} --disable-validation \
       --log-format json --log-interval 500 \
       --symlink \
       --save-trace \
