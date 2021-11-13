@@ -37,7 +37,7 @@ layer_id = 0
 def save_trace(gates, dispatch_mask, layer_id):
     # (S, E, C)
     # token_to_expert = torch.sum(dispatch_mask, dim=2)
-    if parameter.num_updates % 20 == 0:
+    if parameter.num_updates % 20 == 0 and parameter.num_updates <= 20000:
         output = {'gates': gates}
         rk = dist.get_rank()
         output_path = os.path.join(parameter.save_dir, "trace/updates_" + str(parameter.num_updates))    

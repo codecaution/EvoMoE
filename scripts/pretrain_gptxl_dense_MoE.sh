@@ -71,23 +71,24 @@ python train.py ${ddp_options} \
       --arch transformer_lm_gptmedium_moe \
       --share-decoder-input-output-embed \
       --tokens-per-sample ${TOKENS_PER_SAMPLE} --batch-size ${BATCH_SIZE} --update-freq ${UPDATE_FREQ} \
-      --lr ${LR} --lr-scheduler polynomial_decay --warmup-updates ${WARMUP_STEPS}  \
+      --lr ${LR} --min-lr ${MIN_LR} --warmup-updates ${WARMUP_STEPS} --lr-period-updates ${DECAY_STEPS}\
+      --lr-scheduler cosine --warmup-init-lr 1e-07 --lr-shrink 1 \
       --optimizer adam --adam-betas '(0.9, 0.98)' --adam-eps 1e-08 \
-      --clip-norm 5.0 --weight-decay 0.1 --dropout 0.1 \
-      --criterion cross_entropy \
+      --clip-norm 1.0 --weight-decay 0.1 --dropout 0.1 \
+      --criterion moe_cross_entropy --moe-gate-loss-wt 0 --moe-gate-loss-combine-method sum \
       --moe-expert-count $NUM_EXPERTS --moe-freq $MOE_FREQ \
       --moe-gating-use-fp32 --moe-topk-expert \
-      --moe-normalize-expert-grad sqrt_world_size \
+      --moe-normalize-expert-grad world_size \
       --moe-eval-capacity-token-fraction -1.0 \
       --write-checkpoints-asynchronously \
       --save-dir ${CHECKPOINT_PATH} \
       --save-interval-updates ${CHECKPOINT_FREQUENCY} \
-      --num-workers ${DLWS_NUM_WORKER}\
-      --ddp-backend fully_sharded \
+      --num-workers ${DLWS_NUM_WORKER} \
+      --ddp-backend fully_sharded --no-reshard-after-forward \
       --checkpoint-activations \
       --max-update ${MAX_UPDATES} \
-      --total-num-update ${MAX_UPDATES} \
       --validate-interval-updates ${CHECKPOINT_FREQUENCY} \
-      --log-format json --log-interval 100 \
+      --log-format json --log-interval 500 \
+      --save-trace \
       --symlink \
       --seed 1234 2>&1 | tee -a $LOG_PATH
