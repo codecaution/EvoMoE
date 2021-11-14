@@ -76,6 +76,8 @@ def topkgating(
         metadata["gumbel_choosed_experts"] = experts_choosed.sum()
     else:
         gates = F.softmax(logits, dim=1) #(num_tokens, num_experts)
+        l_aux = torch.zeros(size=(1,)).to(gates.device)
+    metadata["gate_weights"] = gates
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
     capacity = int(num_tokens)
     # S, E, C
