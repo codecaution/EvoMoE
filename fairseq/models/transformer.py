@@ -257,6 +257,8 @@ class TransformerModel(FairseqEncoderDecoderModel):
                             help="MoE Expert FFN dimension")
         parser.add_argument('--moe-top1-expert', default=False, action='store_true',
                             help="Use top1 gate instead of top2")
+        parser.add_argument('--moe-train-capacity-token-fraction', type=float, default=1.0,
+                            help="Fraction of tokens as capacity during training")
         parser.add_argument('--moe-eval-capacity-token-fraction', type=float, default=0.25,
                             help="Fraction of tokens as capacity during validation" + \
                                  "if set to negative, use same as training. range: (0.0, 1.0].")
@@ -1240,6 +1242,17 @@ def transformer_iwslt_de_en(args):
     args.decoder_layers = getattr(args, "decoder_layers", 6)
     base_architecture(args)
 
+@register_model_architecture("transformer", "transformer_iwslt_de_en_moe")
+def transformer_iwslt_de_en_moe(args):
+    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 512)
+    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 1024)
+    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 4)
+    args.encoder_layers = getattr(args, "encoder_layers", 6)
+    args.decoder_embed_dim = getattr(args, "decoder_embed_dim", 512)
+    args.decoder_ffn_embed_dim = getattr(args, "decoder_ffn_embed_dim", 1024)
+    args.decoder_attention_heads = getattr(args, "decoder_attention_heads", 4)
+    args.decoder_layers = getattr(args, "decoder_layers", 6)
+    base_architecture(args)
 
 @register_model_architecture("transformer", "transformer_wmt_en_de")
 def transformer_wmt_en_de(args):

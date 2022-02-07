@@ -414,19 +414,28 @@ class TranslationTask(FairseqTask):
 
                 def compute_bleu(meters):
                     import inspect
-                    import sacrebleu
+                    import torch
+                    try:
+                        from sacrebleu.metrics import BLEU
 
-                    fn_sig = inspect.getfullargspec(sacrebleu.compute_bleu)[0]
+                        comp_bleu = BLEU.compute_bleu
+                    except ImportError:
+                        # compatibility API for sacrebleu 1.x
+                        import sacrebleu
+
+                        comp_bleu = sacrebleu.compute_bleu
+
+                    fn_sig = inspect.getfullargspec(comp_bleu)[0]
                     if "smooth_method" in fn_sig:
                         smooth = {"smooth_method": "exp"}
                     else:
                         smooth = {"smooth": "exp"}
-                    bleu = sacrebleu.compute_bleu(
+                    bleu = comp_bleu(
                         correct=meters["_bleu_counts"].sum,
                         total=meters["_bleu_totals"].sum,
-                        sys_len=meters["_bleu_sys_len"].sum,
-                        ref_len=meters["_bleu_ref_len"].sum,
-                        **smooth
+                        sys_len=meters["_bleu_sys_len"].sum if torch.is_tensor(meters["_bleu_sys_len"].sum) == False else meters["_bleu_sys_len"].sum.long().item(),
+                        ref_len=meters["_bleu_ref_len"].sum if torch.is_tensor(meters["_bleu_ref_len"].sum) == False else meters["_bleu_ref_len"].sum.long().item(),
+                        **smooth,
                     )
                     return round(bleu.score, 2)
 
