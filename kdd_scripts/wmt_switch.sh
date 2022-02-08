@@ -1,4 +1,4 @@
-DIR=/vc_data/v-xiaonannie
+DIR=/vc_data/users/v-xiaonannie
 NAME="wmt14_en_fr"
 MOE_FREQ=2
 NUM_EXPERTS=4
@@ -37,7 +37,7 @@ fairseq-train \
     --moe-eval-capacity-token-fraction -1.0 \
     --ddp-backend fully_sharded \
     --save-dir ${CHECKPOINT_PATH} \
-    --max-tokens 4096 2 > &1| tee $LOG_PATH/training.log
+    --max-tokens 4096 2>&1| tee $LOG_PATH/training.log
 
 
 # fairseq-generate $DATA_PATH \

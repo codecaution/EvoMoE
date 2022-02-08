@@ -1,4 +1,4 @@
-DIR=/vc_data/v-xiaonannie
+DIR=/vc_data/users/v-xiaonannie
 NAME="wmt14_en_fr"
 DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_en_fr/
 # DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_fr_en/
@@ -26,9 +26,9 @@ fairseq-train \
     --dropout 0.3 --weight-decay 0.0001 \
     --criterion label_smoothed_cross_entropy --label-smoothing 0.1 \
     --save-dir ${CHECKPOINT_PATH} \
-    --max-tokens 4096 2 > &1| tee $LOG_PATH/training.log
+    --max-tokens 4096 2>&1| tee $LOG_PATH/training.log
 
 
 # fairseq-generate $DATA_PATH \
 #     --path $CHECKPOINT_PATH/checkpoint_best.pt \
-#     --batch-size 128 --beam 5 --remove-bpe 2 > &1| tee $LOG_PATH/test.log
+#     --batch-size 128 --beam 5 --remove-bpe 2>&1| tee $LOG_PATH/test.log
