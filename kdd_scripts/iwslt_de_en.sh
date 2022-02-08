@@ -19,3 +19,8 @@ fairseq-train \
 #     --batch-size 128 --beam 5 --remove-bpe
 
 # Generate test with beam=5: BLEU4 = 34.78, 68.7/43.1/28.9/19.9 (BP=0.963, ratio=0.964, syslen=126387, reflen=131161)
+
+
+fairseq-generate /home/datasets/Fairseq-Data/iwslt14.tokenized.de-en \
+    --path /home/storage/KDD22/checkpoints/thor/checkpoint_best.pt \
+    --batch-size 128 --beam 5 --remove-bpe

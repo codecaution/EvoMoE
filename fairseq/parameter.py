@@ -5,3 +5,4 @@ use_gumbel_gates=False
 save_dir = None
 save_trace=False
 num_updates = 0
+moe_expert_cnt = -1

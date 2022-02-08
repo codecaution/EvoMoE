@@ -7,9 +7,11 @@ import ast
 import collections
 import contextlib
 import functools
+from fairseq import parameter
 import logging
 import os
 import re
+import time
 import traceback
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
@@ -21,6 +23,7 @@ from fairseq.dataclass.utils import (
     convert_namespace_to_omegaconf,
     overwrite_args_by_name,
 )
+from fairseq.distributed.fully_sharded_data_parallel import FSDP, has_FSDP
 from fairseq.distributed import utils as dist_utils
 from fairseq.file_io import PathManager, torch_load_cpu
 from fairseq.models import FairseqDecoder, FairseqEncoder
@@ -340,6 +343,69 @@ def load_checkpoint_to_cpu(path, arg_overrides=None, load_on_all_ranks=False, is
     state = _upgrade_state_dict(state)
     return state
 
+def load_checkpoint_to_cpu_for_inference(path, arg_overrides=None, load_on_all_ranks=False, is_moe=False, moe_expert_cnt = 1):
+    """Loads a checkpoint to CPU (with upgrading for backward compatibility).
+    If doing single-GPU training or if the checkpoint is only being loaded by at
+    most one process on each node (current default behavior is for only rank 0
+    to read the checkpoint from disk), load_on_all_ranks should be False to
+    avoid errors from torch.distributed not having been initialized or
+    torch.distributed.barrier() hanging.
+    If all processes on each node may be loading the checkpoint
+    simultaneously, load_on_all_ranks should be set to True to avoid I/O
+    conflicts.
+    There's currently no support for > 1 but < all processes loading the
+    checkpoint on each node.
+    """
+    local_path = PathManager.get_local_path(path)
+    # The locally cached file returned by get_local_path() may be stale for
+    # remote files that are periodically updated/overwritten (ex:
+    # checkpoint_last.pt) - so we remove the local copy, sync across processes
+    # (if needed), and then download a fresh copy.
+    if local_path != path and PathManager.path_requires_pathmanager(path):
+        try:
+            os.remove(local_path)
+        except FileNotFoundError:
+            # With potentially multiple processes removing the same file, the
+            # file being missing is benign (missing_ok isn't available until
+            # Python 3.8).
+            pass
+        if load_on_all_ranks:
+            torch.distributed.barrier()
+        local_path = PathManager.get_local_path(path)
+
+    # path to checkpoint...-shared.pt
+    shared_path = re.sub('rank-[0-9]+', 'shared', local_path)
+    if is_moe and os.path.exists(shared_path):
+        expert_state = moe_checkpoint_utils.load_expert_state_inference(local_path, moe_expert_cnt)  # Possibly merge experts
+        shared_state = torch_load_cpu(shared_path)
+        state = moe_checkpoint_utils.merge_expert_and_shared_state(expert_state, shared_state)
+    else:
+        state = torch_load_cpu(local_path)
+
+    if "args" in state and state["args"] is not None and arg_overrides is not None:
+        args = state["args"]
+        for arg_name, arg_val in arg_overrides.items():
+            setattr(args, arg_name, arg_val)
+
+    if "cfg" in state and state["cfg"] is not None:
+
+        # hack to be able to set Namespace in dict config. this should be removed when we update to newer
+        # omegaconf version that supports object flags, or when we migrate all existing models
+        from omegaconf import _utils
+
+        old_primitive = _utils.is_primitive_type
+        _utils.is_primitive_type = lambda _: True
+
+        state["cfg"] = OmegaConf.create(state["cfg"])
+
+        _utils.is_primitive_type = old_primitive
+        OmegaConf.set_struct(state["cfg"], True)
+
+        if arg_overrides is not None:
+            overwrite_args_by_name(state["cfg"], arg_overrides)
+
+    state = _upgrade_state_dict(state)
+    return state
 
 def load_model_ensemble(
     filenames,
@@ -419,6 +485,29 @@ def upgrade_state_for_langs_difference(state, model_config, task):
             state["model"][weight_name] = upgraded_weights
             del orig_weights
 
+def get_maybe_sharded_checkpoint_filename(
+     filename: str, suffix: str, shard_idx: int, num_shards: int
+ ) -> str:
+     orig_filename = filename
+     filename = filename.replace(".pt", suffix + ".pt")
+     fsdp_filename = filename[:-4] + f"{shard_idx}" + f"-shard{shard_idx}.pt"
+     print(fsdp_filename)
+     model_parallel_filename = orig_filename[:-3] + f"_part{shard_idx}.pt"
+     if PathManager.exists(fsdp_filename):
+         return fsdp_filename
+     elif num_shards > 1:
+         return model_parallel_filename
+     else:
+         return filename
+
+
+def merge_all_expert_and_shared_state(expert_state, shared_state):
+    state = {}
+    for key in ['cfg', 'args', 'extra_state', 'optimizer_history']:
+        state[key] = expert_state[key]
+    state['model'] = {**expert_state['model'], **shared_state['model']}
+
+    return state
 
 def load_model_ensemble_and_task(
     filenames,
@@ -440,20 +529,21 @@ def load_model_ensemble_and_task(
     ), "Cannot load state dict with strict=True and checkpoint shards > 1"
     ensemble = []
     cfg = None
-
     for filename in filenames:
         orig_filename = filename
+        model_shard_state = {"shard_weights": [], "shard_metadata": []}
         assert num_shards > 0
+        st = time.time()
         for shard_idx in range(num_shards):
-            if num_shards == 1:
-                filename = filename.replace(".pt", suffix + ".pt")
-            else:
-                filename = orig_filename[:-3] + f"_part{shard_idx}.pt"
+            filename = get_maybe_sharded_checkpoint_filename(
+                 orig_filename, suffix, shard_idx, num_shards
+            )
 
             if not PathManager.exists(filename):
                 raise IOError("Model file not found: {}".format(filename))
             if state is None:
-                state = load_checkpoint_to_cpu(filename, arg_overrides, is_moe=is_moe)
+                assert parameter.moe_expert_cnt != -1
+                state = load_checkpoint_to_cpu_for_inference(filename, arg_overrides, is_moe=is_moe, moe_expert_cnt=parameter.moe_expert_cnt)
             if "args" in state and state["args"] is not None:
                 cfg = convert_namespace_to_omegaconf(state["args"])
             elif "cfg" in state and state["cfg"] is not None:
@@ -469,21 +559,54 @@ def load_model_ensemble_and_task(
             if "task_state" in state:
                 task.load_state_dict(state["task_state"])
 
-            # build model for ensemble
-            model = task.build_model(cfg.model)
+            if "shard_metadata" in state and num_shards > 1:
+                model_shard_state["shard_weights"].append(state["model"])
+                model_shard_state["shard_metadata"].append(state["shard_metadata"])
+                # check FSDP import before the code goes too far
+                if not has_FSDP:
+                    raise ImportError(
+                        "Cannot find FullyShardedDataParallel. "
+                        "Please install fairscale with: pip install fairscale"
+                    )
+                if shard_idx == num_shards - 1:
+                    consolidated_model_state = FSDP.consolidate_shard_weights(
+                        shard_weights=model_shard_state["shard_weights"],
+                        shard_metadata=model_shard_state["shard_metadata"],
+                    )
+                    
+                    if (
+                        hasattr(cfg.model, "langs")
+                        and hasattr(task, "langs")
+                        and cfg.model.langs != task.langs
+                    ):
+                        upgrade_state_for_langs_difference(state, cfg.model, task)
 
-            if (
-                hasattr(cfg.model, "langs")
-                and hasattr(task, "langs")
-                and cfg.model.langs != task.langs
-            ):
-                upgrade_state_for_langs_difference(state, cfg.model, task)
-
-            model.load_state_dict(state["model"], strict=strict, model_cfg=cfg.model)
+                    model = task.build_model(cfg.model)
+                    model.load_state_dict(
+                        consolidated_model_state, strict=strict, model_cfg=cfg.model
+                    )
+            else:
+                if (
+                    hasattr(cfg.model, "langs")
+                    and hasattr(task, "langs")
+                    and cfg.model.langs != task.langs
+                ):
+                    upgrade_state_for_langs_difference(state, cfg.model, task)
+                # model parallel checkpoint or unsharded checkpoint
+                model = task.build_model(cfg.model)
+                model.load_state_dict(
+                    state["model"], strict=strict, model_cfg=cfg.model
+                )
 
             # reset state so it gets loaded for the next model in ensemble
             state = None
+            if shard_idx % 10 == 0 and shard_idx > 0:
+                elapsed = time.time() - st
+                logger.info(
+                    f"Loaded {shard_idx} shards in {elapsed:.2f}s, {elapsed / (shard_idx+1):.2f}s/shard"
+                )
 
+        # build model for ensemble
         ensemble.append(model)
     return ensemble, cfg, task
 
@@ -581,8 +704,12 @@ def _upgrade_state_dict(state):
     if "num_updates" not in state["optimizer_history"][-1]:
         state["optimizer_history"][-1]["num_updates"] = 0
     # old model checkpoints may not have separate source/target positions
-    if "args" in state and hasattr(state["args"], "max_positions") and not hasattr(
-        state["args"], "max_source_positions"
+    # if "args" in state and hasattr(state["args"], "max_positions") and not hasattr(
+    #     state["args"], "max_source_positions"
+    if (
+         "args" in state
+         and hasattr(state["args"], "max_positions")
+         and not hasattr(state["args"], "max_source_positions")   
     ):
         state["args"].max_source_positions = state["args"].max_positions
         state["args"].max_target_positions = state["args"].max_positions

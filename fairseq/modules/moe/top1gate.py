@@ -52,13 +52,11 @@ def top1gating(
     metadata["gate_weights"] = gates
     
     metadata["entropy_gating"] = entropy(probs=gates).mean().detach()
-
     if moe_eval_capacity_token_fraction > 0.0 and eval_mode:
         capacity = math.ceil(moe_eval_capacity_token_fraction * num_tokens)
     else:
         # capacity = capacity_factor * S/E
         capacity = int(capacity_factor * math.ceil(num_tokens / num_experts))
-
     # Create a mask for 1st's expert per token
     indices1_s = torch.argmax(gates, dim=1)
     mask1 = one_hot(indices1_s, num_classes=num_experts, unsqueeze_indices=True)

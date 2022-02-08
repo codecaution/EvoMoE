@@ -11,7 +11,7 @@ from argparse import Namespace
 from itertools import chain
 
 import torch
-from fairseq import checkpoint_utils, distributed_utils, options, utils
+from fairseq import checkpoint_utils, distributed_utils, options, utils, parameter
 from fairseq.dataclass.utils import convert_namespace_to_omegaconf
 from fairseq.logging import metrics, progress_bar
 from omegaconf import DictConfig
@@ -39,6 +39,8 @@ def main(cfg: DictConfig, override_args=None):
     use_fp16 = cfg.common.fp16
     use_cuda = torch.cuda.is_available() and not cfg.common.cpu
 
+    parameter.moe_expert_cnt = getattr(cfg.model, "moe_expert_count", 4)
+    
     if use_cuda:
         torch.cuda.set_device(cfg.distributed_training.device_id)
 
@@ -61,6 +63,8 @@ def main(cfg: DictConfig, override_args=None):
         [cfg.common_eval.path],
         arg_overrides=overrides,
         suffix=cfg.checkpoint.checkpoint_suffix,
+        num_shards=1,
+        is_moe=True,
     )
     model = models[0]
 

@@ -43,6 +43,8 @@ DEFAULT_MIN_PARAMS_TO_WRAP = int(1e8)
 # Read here
 def fsdp_wrap_expert(args, layer, min_num_params=0):
     # Wrap MoE layer with FSDP using a process group with all replicated ranks
+    if torch.distributed.is_initialized() == False:
+        return layer
     process_group = layer.moe_layer.expert_group
     world_size = dist_utils.get_data_parallel_group().size()
     pg_size = process_group.size()

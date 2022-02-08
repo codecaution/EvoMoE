@@ -524,49 +524,48 @@ def validate(
         stats = get_valid_stats(cfg, trainer, agg.get_smoothed_values())
         progress.print(stats, tag=subset, step=trainer.get_num_updates())
         valid_losses.append(stats[cfg.checkpoint.best_checkpoint_metric])
-
-        if cfg.model.moe_topk_expert:
-            # Initialize data iterator
-            itr = trainer.get_valid_iterator(subset).next_epoch_itr(
-                shuffle=False, set_dataset_epoch=False  # use a fixed valid set
-            )
-            if cfg.common.tpu:
-                itr = utils.tpu_data_loader(itr)
+        # if cfg.model.moe_topk_expert:
+        #     # Initialize data iterator
+        #     itr = trainer.get_valid_iterator(subset).next_epoch_itr(
+        #         shuffle=False, set_dataset_epoch=False  # use a fixed valid set
+        #     )
+        #     if cfg.common.tpu:
+        #         itr = utils.tpu_data_loader(itr)
             
-            progress = progress_bar.progress_bar(
-                itr,
-                log_format=cfg.common.log_format,
-                log_interval=cfg.common.log_interval,
-                epoch=epoch_itr.epoch,
-                prefix=f"valid on '{subset}' subset",
-                tensorboard_logdir=(
-                    cfg.common.tensorboard_logdir
-                    if distributed_utils.is_master(cfg.distributed_training)
-                    else None
-                ),
-                default_log_format=("tqdm" if not cfg.common.no_progress_bar else "simple"),
-                wandb_project=(
-                    cfg.common.wandb_project
-                    if distributed_utils.is_master(cfg.distributed_training)
-                    else None
-                ),
-                wandb_run_name=os.environ.get(
-                    "WANDB_NAME", os.path.basename(cfg.checkpoint.save_dir)
-                ),
-            )
+        #     progress = progress_bar.progress_bar(
+        #         itr,
+        #         log_format=cfg.common.log_format,
+        #         log_interval=cfg.common.log_interval,
+        #         epoch=epoch_itr.epoch,
+        #         prefix=f"valid on '{subset}' subset",
+        #         tensorboard_logdir=(
+        #             cfg.common.tensorboard_logdir
+        #             if distributed_utils.is_master(cfg.distributed_training)
+        #             else None
+        #         ),
+        #         default_log_format=("tqdm" if not cfg.common.no_progress_bar else "simple"),
+        #         wandb_project=(
+        #             cfg.common.wandb_project
+        #             if distributed_utils.is_master(cfg.distributed_training)
+        #             else None
+        #         ),
+        #         wandb_run_name=os.environ.get(
+        #             "WANDB_NAME", os.path.basename(cfg.checkpoint.save_dir)
+        #         ),
+        #     )
 
-            #*******************************************Validation Dense Model**********************************************************
-            parameter.dense_validate = True
-            with metrics.aggregate(new_root=True) as agg:
-                for i, sample in enumerate(progress):
-                    if cfg.dataset.max_valid_steps is not None and i > cfg.dataset.max_valid_steps:
-                        break
-                    trainer.valid_step(sample)
-            # log validation stats
-            stats = get_valid_stats(cfg, trainer, agg.get_smoothed_values())
-            progress.print(stats, tag="validate_dense", step=trainer.get_num_updates())
-            parameter.dense_validate = False
-            #*************************************************************************************************************************
+        #     #*******************************************Validation Dense Model**********************************************************
+        #     parameter.dense_validate = True
+        #     with metrics.aggregate(new_root=True) as agg:
+        #         for i, sample in enumerate(progress):
+        #             if cfg.dataset.max_valid_steps is not None and i > cfg.dataset.max_valid_steps:
+        #                 break
+        #             trainer.valid_step(sample)
+        #     # log validation stats
+        #     stats = get_valid_stats(cfg, trainer, agg.get_smoothed_values())
+        #     progress.print(stats, tag="validate_dense", step=trainer.get_num_updates())
+        #     parameter.dense_validate = False
+        #     #*************************************************************************************************************************
     return valid_losses
 
 

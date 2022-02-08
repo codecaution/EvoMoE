@@ -167,7 +167,16 @@ TEXT=examples/translation/wmt17_en_de
 fairseq-preprocess \
     --source-lang en --target-lang de \
     --trainpref $TEXT/train --validpref $TEXT/valid --testpref $TEXT/test \
-    --destdir data-bin/wmt17_en_de --thresholdtgt 0 --thresholdsrc 0 \
+    --destdir wmt17_en_de --thresholdtgt 0 --thresholdsrc 0 \
+    --joined-dictionary \
+    --workers 20
+
+TEXT=examples/translation/wmt17_de_en
+fairseq-preprocess \
+    --source-lang de --target-lang en \
+    --trainpref $TEXT/train --validpref $TEXT/valid --testpref $TEXT/test \
+    --destdir wmt17_de_en --thresholdtgt 0 --thresholdsrc 0 \
+    --joined-dictionary \
     --workers 20
 
 # Train the model
@@ -200,7 +209,17 @@ TEXT=examples/translation/wmt14_en_fr
 fairseq-preprocess \
     --source-lang en --target-lang fr \
     --trainpref $TEXT/train --validpref $TEXT/valid --testpref $TEXT/test \
-    --destdir data-bin/wmt14_en_fr --thresholdtgt 0 --thresholdsrc 0 \
+    --destdir wmt14_en_fr --thresholdtgt 0 --thresholdsrc 0 \
+    --joined-dictionary \
+    --workers 60
+
+
+TEXT=examples/translation/wmt14_fr_en
+fairseq-preprocess \
+    --source-lang fr --target-lang en \
+    --trainpref $TEXT/train --validpref $TEXT/valid --testpref $TEXT/test \
+    --destdir wmt14_fr_en --thresholdtgt 0 --thresholdsrc 0 \
+    --joined-dictionary \
     --workers 60
 
 # Train the model

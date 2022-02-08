@@ -17,7 +17,7 @@ from itertools import chain
 
 import numpy as np
 import torch
-from fairseq import checkpoint_utils, options, scoring, tasks, utils, distributed_utils
+from fairseq import checkpoint_utils, options, scoring, tasks, utils, distributed_utils, parameter
 from fairseq.dataclass.utils import convert_namespace_to_omegaconf
 from fairseq.logging import progress_bar
 from fairseq.logging.meters import StopwatchMeter, TimeMeter
@@ -29,7 +29,7 @@ def main(cfg: DictConfig):
 
     if isinstance(cfg, Namespace):
         cfg = convert_namespace_to_omegaconf(cfg)
-
+    parameter.moe_expert_cnt = getattr(cfg.model, "moe_expert_count", 4)
     assert cfg.common_eval.path is not None, "--path required for generation!"
     assert (
         not cfg.generation.sampling or cfg.generation.nbest == cfg.generation.beam
@@ -94,21 +94,30 @@ def _main(cfg: DictConfig, output_file):
 
     # Load ensemble
     logger.info("loading model(s) from {}".format(cfg.common_eval.path))
-    if cfg.common_eval.is_moe and torch.distributed.is_initialized() and torch.distributed.get_world_size() > 1:
-        cfg.checkpoint.checkpoint_suffix = f"-rank-{torch.distributed.get_rank()}"
-        moe_freq = 1
-    else:
-        moe_freq = 0
-    models, saved_cfg = checkpoint_utils.load_model_ensemble(
-        utils.split_paths(cfg.common_eval.path),
+    # if cfg.common_eval.is_moe and torch.distributed.is_initialized() and torch.distributed.get_world_size() > 1:
+    #     cfg.checkpoint.checkpoint_suffix = f"-rank-{torch.distributed.get_rank()}"
+    #     moe_freq = 1
+    # else:
+    #     moe_freq = 0
+    # models, saved_cfg = checkpoint_utils.load_model_ensemble(
+    #     utils.split_paths(cfg.common_eval.path),
+    #     arg_overrides=overrides,
+    #     task=task,
+    #     suffix=cfg.checkpoint.checkpoint_suffix,
+    #     strict=(cfg.checkpoint.checkpoint_shard_count == 1),
+    #     num_shards=cfg.checkpoint.checkpoint_shard_count,
+    #     is_moe=moe_freq > 0,
+    # )
+    logger.info("loading model(s) from {}".format(cfg.common_eval.path))
+    models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task(
+        [cfg.common_eval.path],
         arg_overrides=overrides,
-        task=task,
         suffix=cfg.checkpoint.checkpoint_suffix,
-        strict=(cfg.checkpoint.checkpoint_shard_count == 1),
-        num_shards=cfg.checkpoint.checkpoint_shard_count,
-        is_moe=moe_freq > 0,
+        num_shards=1,
+        is_moe=True,
     )
-
+    model = models[0]
+    cfg.common_eval.quiet = True
     # loading the dataset should happen after the checkpoint has been loaded so we can give it the saved task config
     task.load_dataset(cfg.dataset.gen_subset, task_cfg=saved_cfg.task)
 

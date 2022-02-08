@@ -153,6 +153,25 @@ def load_expert_state(local_path):
         expert_state = torch_load_cpu(local_path)
     return expert_state
 
+def load_expert_state_inference(local_path, expert_cnt):
+    if expert_cnt > 1:
+        expert_states = []
+        for expert_rank in range(expert_cnt):
+            fname = re.sub(
+                'rank-[0-9]+',
+                'rank-{0}'.format(expert_rank),
+                local_path,
+            )
+            fname = re.sub(
+                'shard[0-9]+',
+                'shard{0}'.format(expert_rank),
+                fname,
+            )
+            expert_states.append(torch_load_cpu(fname))
+        expert_state = merge_multi_local_expert_states(expert_states)
+    else:
+        expert_state = torch_load_cpu(local_path)
+    return expert_state
 
 def assert_equal(a, b, msg=''):
     assert a == b, f"{msg}{a} != {b}"

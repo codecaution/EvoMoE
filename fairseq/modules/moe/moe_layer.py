@@ -28,33 +28,6 @@ else:
 
 logger = logging.getLogger(__name__)
 layer_id = 0
-# Gate Log structure:
-# {batch_id: 
-#           {Layer_id: "gates":{}}
-# }
-# 
-
-def save_trace(gates, dispatch_mask, layer_id):
-    # (S, E, C)
-    # token_to_expert = torch.sum(dispatch_mask, dim=2)
-    if parameter.num_updates % 20 == 0 and parameter.num_updates <= 20000:
-        output = {'gates': gates}
-        rk = dist.get_rank()
-        output_path = os.path.join(parameter.save_dir, "trace/updates_" + str(parameter.num_updates))    
-        if rk == 0:
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
-            torch.distributed.barrier()
-        else:
-            torch.distributed.barrier()
-
-        output['rank'] = rk
-        output['updates'] = parameter.num_updates
-        output['layer_id'] = layer_id
-        output_file = os.path.join(output_path, "switch_trace_rank_{}_updates_{}_layer_{}.pt".format(rk, parameter.num_updates, layer_id))
-
-        if not os.path.exists(output_file):
-            torch.save(output, output_file)
 
 class MOELayer(Base):
     """MOELayer module which implements MixtureOfExperts as described in Gshard_.
@@ -142,7 +115,7 @@ class MOELayer(Base):
         # Doing padding here when --max-tokens is specified and not --batch-size or --max-sentences
         # Pro of --max-tokens: more flexible for MT variable sequence lengths
         # Con of --max-tokens: extra all-reduce needed to figure out optimal padding without running OOM
-        if expected_bsz == 0:
+        if expected_bsz == 0 and distributed_utils.get_global_world_size() > 1:
             expected_dim = int(distributed_utils.all_reduce(
                 reshaped_input_shape[0] * torch.ones((1,), dtype=torch.long, device=input.device),
                 group=dist.group.WORLD,
@@ -164,9 +137,6 @@ class MOELayer(Base):
             reshaped_input_padding_mask = padded_input_padding_mask
         # combine_weights, dispatch_mask: (tokens, num_experts, capacity)
         l_aux, combine_weights, dispatch_mask, self.metadata = self.gate(reshaped_input, reshaped_input_padding_mask)
-
-        if parameter.save_trace:
-            save_trace(self.metadata["gate_weights"], dispatch_mask, self.layer_id)
 
         dispatch_mask = dispatch_mask.to(input.dtype).permute(1, 2, 0)  # S,E,C -> E,C,S
         E, C, S = dispatch_mask.size()

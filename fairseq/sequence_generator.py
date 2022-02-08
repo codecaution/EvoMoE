@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 from fairseq import search, utils
 from fairseq.data import data_utils
 from fairseq.models import FairseqIncrementalDecoder
@@ -426,7 +427,8 @@ class SequenceGenerator(nn.Module):
                 num_remaining_sent -= len(finalized_sents)
 
             assert num_remaining_sent >= 0
-            if num_remaining_sent == 0:
+            # Bug is here for the un-even generation of different sentences.
+            if num_remaining_sent == 0: # for the left sentences to execute
                 break
             if self.search.stop_on_max_len and step >= max_len:
                 break
