@@ -1,12 +1,12 @@
 DIR=/vc_data/users/v-xiaonannie
-NAME="wmt14_en_fr"
+NAME="wmt14_fr_en"
 MOE_FREQ=2
 NUM_EXPERTS=4
 EXPERT_NORMALIZE=world_size
 CHECKPOINT_FREQUENCY=500
 
-DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_en_fr/
-# DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_fr_en/
+# DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_en_fr/
+DATA_PATH=$DIR/Fairseq-Data/translation/wmt14_fr_en/
 # DATA_PATH=$DIR/Fairseq-Data/translation/wmt17_en_de/
 # DATA_PATH=$DIR/Fairseq-Data/translation/wmt17_de_en/
 
