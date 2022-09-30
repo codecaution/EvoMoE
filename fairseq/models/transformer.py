@@ -400,9 +400,15 @@ class TransformerEncoder(FairseqEncoder):
             self.layers = LayerDropModuleList(p=self.encoder_layerdrop)
         else:
             self.layers = nn.ModuleList([])
-        self.layers.extend(
-            [self.build_encoder_layer(args) for i in range(args.encoder_layers)]
-        )
+        moe_freq = max(getattr(args, 'decoder_moe_freq', 0), getattr(args, 'moe_freq', 0))
+        for i in range(args.encoder_layers):
+            is_moe_layer = moe_freq != 0 and (i + 1) % moe_freq == 0
+            print(is_moe_layer)
+            self.layers.append(
+                self.build_encoder_layer(
+                    args, is_moe_layer=is_moe_layer,
+                )
+            )
         self.num_layers = len(self.layers)
 
         if args.encoder_normalize_before:
@@ -410,8 +416,8 @@ class TransformerEncoder(FairseqEncoder):
         else:
             self.layer_norm = None
 
-    def build_encoder_layer(self, args):
-        layer = TransformerEncoderLayer(args)
+    def build_encoder_layer(self, args, is_moe_layer):
+        layer = TransformerEncoderLayer(args, is_moe_layer=is_moe_layer)
         checkpoint = getattr(args, "checkpoint_activations", False)
         if checkpoint:
             offload_to_cpu = getattr(args, "offload_activations", False)
@@ -529,9 +535,11 @@ class TransformerEncoder(FairseqEncoder):
             encoder_states.append(x)
 
         # encoder layers
+        balance_loss = None
+        distill_loss = None
         for layer in self.layers:
-            x = layer(
-                x, encoder_padding_mask=encoder_padding_mask if has_pads else None
+            x, l_aux, balance_loss, distill_loss = layer(
+                x, encoder_padding_mask=encoder_padding_mask if has_pads else None, input_ids=src_tokens.transpose(0, 1),
             )
             if return_all_hiddens:
                 assert encoder_states is not None
@@ -551,6 +559,8 @@ class TransformerEncoder(FairseqEncoder):
             "encoder_states": encoder_states,  # List[T x B x C]
             "src_tokens": [],
             "src_lengths": [],
+            "balance_loss": balance_loss,
+            "distill_loss": distill_loss,
         }
 
     @torch.jit.export
@@ -717,12 +727,16 @@ class TransformerDecoder(FairseqIncrementalDecoder):
             self.layers = LayerDropModuleList(p=self.decoder_layerdrop)
         else:
             self.layers = nn.ModuleList([])
-        self.layers.extend(
-            [
-                self.build_decoder_layer(args, no_encoder_attn)
-                for _ in range(args.decoder_layers)
-            ]
-        )
+        moe_freq = max(getattr(args, 'decoder_moe_freq', 0), getattr(args, 'moe_freq', 0))
+        print(moe_freq)
+        for i in range(args.decoder_layers):
+            is_moe_layer = moe_freq != 0 and (i + 1) % moe_freq == 0
+            print(is_moe_layer)
+            self.layers.append(
+                self.build_decoder_layer(
+                    args, no_encoder_attn=no_encoder_attn, is_moe_layer=is_moe_layer,
+                )
+            )
         self.num_layers = len(self.layers)
 
         if args.decoder_normalize_before and not getattr(
@@ -769,24 +783,9 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 self.output_projection.weight, mean=0, std=self.output_embed_dim ** -0.5
             )
         num_moe_layers = getattr(args, "moe_layers", 0)
-        for i in range(num_moe_layers):
-            if args.moe_type == 'dense_base_layer':
-                moe_layer = DenseBaseLayer(args)
-            elif args.moe_type == 'hash_layer':
-                moe_layer = HashLayer(args)
-            elif args.moe_type == 'switch_layer':
-                moe_layer = SwitchLayer(args)
-            elif args.moe_type == 'base_layer':
-                moe_layer = BaseLayer(args)
-            else:
-                raise Exception('Unknown MoE type, can be dense_base_layer, switch_layer, hash_layer, or base_layer')
-            self.layers.insert(
-                ((i + 1) * args.decoder_layers) // (num_moe_layers + 1),
-                moe_layer,
-            )
 
-    def build_decoder_layer(self, args, no_encoder_attn=False):
-        layer = TransformerDecoderLayer(args, no_encoder_attn)
+    def build_decoder_layer(self, args, no_encoder_attn=False, is_moe_layer=False):
+        layer = TransformerDecoderLayer(args, no_encoder_attn, is_moe_layer=is_moe_layer)
         checkpoint = getattr(args, "checkpoint_activations", False)
         if checkpoint:
             offload_to_cpu = getattr(args, "offload_activations", False)
@@ -957,29 +956,18 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 self_attn_mask = self.buffered_future_mask(x)
             else:
                 self_attn_mask = None
-            if isinstance(layer, BaseLayer) or isinstance(layer, HashLayer) or isinstance(layer, SwitchLayer):
-                x, layer_attn, _, balance_loss, distill_loss = layer(
-                    x,
-                    enc,
-                    padding_mask,
-                    incremental_state,
-                    self_attn_mask=self_attn_mask,
-                    self_attn_padding_mask=self_attn_padding_mask,
-                    need_attn=bool((idx == alignment_layer)),
-                    need_head_weights=bool((idx == alignment_layer)),
-                    input_ids=prev_output_tokens.transpose(0, 1),
-                )
-            else:
-                x, layer_attn, _ = layer(
-                    x,
-                    enc,
-                    padding_mask,
-                    incremental_state,
-                    self_attn_mask=self_attn_mask,
-                    self_attn_padding_mask=self_attn_padding_mask,
-                    need_attn=bool((idx == alignment_layer)),
-                    need_head_weights=bool((idx == alignment_layer)),
-                )
+            x, layer_attn, _, balance_loss, distill_loss = layer(
+                x,
+                enc,
+                padding_mask,
+                incremental_state,
+                self_attn_mask=self_attn_mask,
+                self_attn_padding_mask=self_attn_padding_mask,
+                need_attn=bool((idx == alignment_layer)),
+                need_head_weights=bool((idx == alignment_layer)),
+                input_ids=prev_output_tokens.transpose(0, 1),
+            )
+
             inner_states.append(x)
             if layer_attn is not None and idx == alignment_layer:
                 attn = layer_attn.float().to(x)

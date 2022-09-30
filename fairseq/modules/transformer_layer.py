@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 import torch
 import torch.nn as nn
 from fairseq import utils
-from fairseq.modules import LayerNorm, MultiheadAttention
+from fairseq.modules import LayerNorm, MultiheadAttention, BaseLayer, DenseBaseLayer, HashLayer, SwitchLayer
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.quant_noise import quant_noise
 from torch import Tensor
@@ -29,7 +29,7 @@ class TransformerEncoderLayer(nn.Module):
         args (argparse.Namespace): parsed command-line arguments
     """
 
-    def __init__(self, args):
+    def __init__(self, args, is_moe_layer=False):
         super().__init__()
         self.args = args
         self.embed_dim = args.encoder_embed_dim
@@ -44,26 +44,42 @@ class TransformerEncoderLayer(nn.Module):
         self.activation_fn = utils.get_activation_fn(
             activation=getattr(args, 'activation_fn', 'relu') or "relu"
         )
-        activation_dropout_p = getattr(args, "activation_dropout", 0) or 0
-        if activation_dropout_p == 0:
-            # for backwards compatibility with models that use args.relu_dropout
-            activation_dropout_p = getattr(args, "relu_dropout", 0) or 0
-        self.activation_dropout_module = FairseqDropout(
-            float(activation_dropout_p), module_name=self.__class__.__name__
-        )
+        self.is_moe_layer = is_moe_layer
         self.normalize_before = args.encoder_normalize_before
-        self.fc1 = self.build_fc1(
-            self.embed_dim,
-            args.encoder_ffn_embed_dim,
-            self.quant_noise,
-            self.quant_noise_block_size,
-        )
-        self.fc2 = self.build_fc2(
-            args.encoder_ffn_embed_dim,
-            self.embed_dim,
-            self.quant_noise,
-            self.quant_noise_block_size,
-        )
+        if not self.is_moe_layer:
+            self.activation_fn = utils.get_activation_fn(
+                activation=getattr(args, 'activation_fn', 'relu') or "relu"
+            )
+            activation_dropout_p = getattr(args, "activation_dropout", 0) or 0
+            if activation_dropout_p == 0:
+                # for backwards compatibility with models that use args.relu_dropout
+                activation_dropout_p = getattr(args, "relu_dropout", 0) or 0
+            self.activation_dropout_module = FairseqDropout(
+                float(activation_dropout_p), module_name=self.__class__.__name__
+            )
+            self.fc1 = self.build_fc1(
+                self.embed_dim,
+                args.encoder_ffn_embed_dim,
+                self.quant_noise,
+                self.quant_noise_block_size,
+            )
+            self.fc2 = self.build_fc2(
+                args.encoder_ffn_embed_dim,
+                self.embed_dim,
+                self.quant_noise,
+                self.quant_noise_block_size,
+            )
+        elif args.moe_type == 'dense_base_layer':
+            self.moe_layer = DenseBaseLayer(self.args)
+        elif args.moe_type == 'hash_layer':
+            self.moe_layer = HashLayer(self.args)
+        elif args.moe_type == 'switch_layer':
+            self.moe_layer = SwitchLayer(self.args)
+        elif args.moe_type == 'base_layer':
+            self.moe_layer = BaseLayer(self.args)
+            print("baselayer")
+        else:
+            raise Exception('Unknown MoE type, can be EvoMoE, dense_base_layer, switch_layer, hash_layer, or base_layer')
 
         self.final_layer_norm = LayerNorm(self.embed_dim, export=export)
 
@@ -104,7 +120,7 @@ class TransformerEncoderLayer(nn.Module):
                     state_dict["{}.{}.{}".format(name, new, m)] = state_dict[k]
                     del state_dict[k]
 
-    def forward(self, x, encoder_padding_mask: Optional[Tensor], attn_mask: Optional[Tensor] = None):
+    def forward(self, x, encoder_padding_mask: Optional[Tensor], attn_mask: Optional[Tensor] = None, input_ids: Optional[torch.Tensor] = None,):
         """
         Args:
             x (Tensor): input to the layer of shape `(seq_len, batch, embed_dim)`
@@ -143,18 +159,23 @@ class TransformerEncoderLayer(nn.Module):
         x = self.residual_connection(x, residual)
         if not self.normalize_before:
             x = self.self_attn_layer_norm(x)
-
+        
         residual = x
         if self.normalize_before:
             x = self.final_layer_norm(x)
-        x = self.activation_fn(self.fc1(x))
-        x = self.activation_dropout_module(x)
-        x = self.fc2(x)
-        x = self.dropout_module(x)
+        if not self.is_moe_layer:
+            x = self.activation_fn(self.fc1(x))
+            x = self.activation_dropout_module(x)
+            x = self.fc2(x)
+            x = self.dropout_module(x)
+            l_aux=0
+            distill_loss=0
+        else:
+            x, layer_attn, _, l_aux, distill_loss = self.moe_layer(x, input_ids=input_ids)
         x = self.residual_connection(x, residual)
         if not self.normalize_before:
             x = self.final_layer_norm(x)
-        return x
+        return x, l_aux, distill_loss
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -175,7 +196,7 @@ class TransformerDecoderLayer(nn.Module):
     """
 
     def __init__(
-        self, args, no_encoder_attn=False, add_bias_kv=False, add_zero_attn=False
+        self, args, no_encoder_attn=False, add_bias_kv=False, add_zero_attn=False, is_moe_layer=False,
     ):
         super().__init__()
         self.embed_dim = args.decoder_embed_dim
@@ -194,18 +215,6 @@ class TransformerDecoderLayer(nn.Module):
             add_zero_attn=add_zero_attn,
         )
 
-        self.activation_fn = utils.get_activation_fn(
-            activation=str(args.activation_fn)
-            if getattr(args, "activation_fn", None) is not None
-            else "relu"
-        )
-        activation_dropout_p = getattr(args, "activation_dropout", 0) or 0
-        if activation_dropout_p == 0:
-            # for backwards compatibility with models that use args.relu_dropout
-            activation_dropout_p = getattr(args, "relu_dropout", 0) or 0
-        self.activation_dropout_module = FairseqDropout(
-            float(activation_dropout_p), module_name=self.__class__.__name__
-        )
         self.normalize_before = args.decoder_normalize_before
 
         export = getattr(args, "export", False)
@@ -218,18 +227,45 @@ class TransformerDecoderLayer(nn.Module):
             self.encoder_attn = self.build_encoder_attention(self.embed_dim, args)
             self.encoder_attn_layer_norm = LayerNorm(self.embed_dim, export=export)
 
-        self.fc1 = self.build_fc1(
-            self.embed_dim,
-            args.decoder_ffn_embed_dim,
-            self.quant_noise,
-            self.quant_noise_block_size,
-        )
-        self.fc2 = self.build_fc2(
-            args.decoder_ffn_embed_dim,
-            self.embed_dim,
-            self.quant_noise,
-            self.quant_noise_block_size,
-        )
+        self.is_moe_layer = is_moe_layer
+        self.args = args
+        print("self.is_moe_layer"+str(self.is_moe_layer))
+        if not self.is_moe_layer:
+            self.activation_fn = utils.get_activation_fn(
+                activation=str(args.activation_fn)
+                if getattr(args, "activation_fn", None) is not None
+                else "relu"
+            )
+            activation_dropout_p = getattr(args, "activation_dropout", 0) or 0
+            if activation_dropout_p == 0:
+                # for backwards compatibility with models that use args.relu_dropout
+                activation_dropout_p = getattr(args, "relu_dropout", 0) or 0
+            self.activation_dropout_module = FairseqDropout(
+                float(activation_dropout_p), module_name=self.__class__.__name__
+            )
+            self.fc1 = self.build_fc1(
+                self.embed_dim,
+                args.decoder_ffn_embed_dim,
+                self.quant_noise,
+                self.quant_noise_block_size,
+            )
+            self.fc2 = self.build_fc2(
+                args.decoder_ffn_embed_dim,
+                self.embed_dim,
+                self.quant_noise,
+                self.quant_noise_block_size,
+            )
+        elif args.moe_type == 'dense_base_layer':
+            self.moe_layer = DenseBaseLayer(self.args)
+        elif args.moe_type == 'hash_layer':
+            self.moe_layer = HashLayer(self.args)
+        elif args.moe_type == 'switch_layer':
+            self.moe_layer = SwitchLayer(self.args)
+        elif args.moe_type == 'base_layer':
+            self.moe_layer = BaseLayer(self.args)
+            print("baselayer")
+        else:
+            raise Exception('Unknown MoE type, can be EvoMoE, dense_base_layer, switch_layer, hash_layer, or base_layer')
 
         self.final_layer_norm = LayerNorm(self.embed_dim, export=export)
         self.need_attn = True
@@ -286,6 +322,7 @@ class TransformerDecoderLayer(nn.Module):
         self_attn_padding_mask: Optional[torch.Tensor] = None,
         need_attn: bool = False,
         need_head_weights: bool = False,
+        input_ids: Optional[torch.Tensor] = None,
     ):
         """
         Args:
@@ -386,13 +423,17 @@ class TransformerDecoderLayer(nn.Module):
                 x = self.encoder_attn_layer_norm(x)
 
         residual = x
+        l_aux = None
+        distill_loss = None
         if self.normalize_before:
             x = self.final_layer_norm(x)
-
-        x = self.activation_fn(self.fc1(x))
-        x = self.activation_dropout_module(x)
-        x = self.fc2(x)
-        x = self.dropout_module(x)
+        if not self.is_moe_layer:
+            x = self.activation_fn(self.fc1(x))
+            x = self.activation_dropout_module(x)
+            x = self.fc2(x)
+            x = self.dropout_module(x)
+        else:
+            x, layer_attn, _, l_aux, distill_loss = self.moe_layer(x, input_ids=input_ids)
         x = self.residual_connection(x, residual)
         if not self.normalize_before:
             x = self.final_layer_norm(x)
@@ -407,8 +448,8 @@ class TransformerDecoderLayer(nn.Module):
                 ]
             else:
                 self_attn_state = [saved_state["prev_key"], saved_state["prev_value"]]
-            return x, attn, self_attn_state
-        return x, attn, None
+            return x, attn, self_attn_state, l_aux, distill_loss
+        return x, attn, None, l_aux, distill_loss
 
     def make_generation_fast_(self, need_attn: bool = False, **kwargs):
         self.need_attn = need_attn

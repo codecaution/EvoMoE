@@ -187,6 +187,12 @@ class TransformerLanguageModelConfig(FairseqDataclass):
     )
     moe_layers: Optional[int] = field(
         default=0, metadata={"help": "number of MoE layers in total"}
+    )  
+    moe_freq: int = field(
+        default=0,
+        metadata={
+            "help": "Frequency at which we insert MoE Transformer layers"
+        },
     )
     moe_sublayers: Optional[int] = field(
         default=1, metadata={"help": "number of sublayers in each MoE layer"}
